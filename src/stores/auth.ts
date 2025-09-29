@@ -1,16 +1,8 @@
-// src/stores/auth.ts
+// src/stores/auth.ts - Atualizado com redirect
 import { supabase } from '@/services/api'
 import type { User } from '@supabase/supabase-js'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-
-export interface SignUpData {
-  email: string
-  password: string
-  name: string
-  phone: string
-  category: string
-}
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -43,56 +35,28 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function signUp(signUpData: SignUpData) {
+  async function signUp(email: string, password: string) {
     loading.value = true
     error.value = null
 
     try {
       const { data, error: authError } = await supabase.auth.signUp({
-        email: signUpData.email,
-        password: signUpData.password,
+        email,
+        password,
         options: {
-          data: {
-            name: signUpData.name,
-            phone: signUpData.phone,
-            category: signUpData.category,
-          },
+          // Redirecionar para dashboard após confirmação
+          emailRedirectTo: `${window.location.origin}/dashboard?confirmed=true`,
         },
       })
 
       if (authError) throw new Error(authError.message)
 
       user.value = data.user
-
-      // Criar perfil profissional na tabela professionals
-      if (data.user) {
-        await createProfessionalProfile(data.user, signUpData)
-      }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao criar conta'
       throw err
     } finally {
       loading.value = false
-    }
-  }
-
-  async function createProfessionalProfile(user: User, signUpData: SignUpData) {
-    try {
-      const { error } = await supabase.from('professionals').insert({
-        id: user.id,
-        email: signUpData.email,
-        name: signUpData.name,
-        phone: signUpData.phone,
-        category: signUpData.category,
-        address: '',
-        city: '',
-        price_range: '',
-        is_active: false, // Ativo apenas após pagamento
-      })
-
-      if (error) throw error
-    } catch (err) {
-      console.error('Erro ao criar perfil profissional:', err)
     }
   }
 
@@ -128,11 +92,18 @@ export const useAuthStore = defineStore('auth', () => {
   // Escutar mudanças de autenticação
   function setupAuthListener() {
     supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event, session?.user?.email)
+
       user.value = session?.user || null
 
-      if (event === 'SIGNED_OUT') {
-        // Limpar dados do usuário
-        error.value = null
+      // Só redirecionar em casos específicos, não sempre
+      if (event === 'SIGNED_IN' && session?.user) {
+        const url = new URL(window.location.href)
+
+        // Só redirecionar se veio da página de confirmação ou tem parâmetro confirmed
+        if (url.pathname === '/confirmar-email' || url.searchParams.get('confirmed') === 'true') {
+          window.location.href = '/dashboard'
+        }
       }
     })
   }

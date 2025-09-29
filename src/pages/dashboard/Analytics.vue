@@ -9,33 +9,239 @@
       <p class="text-muted-foreground">Acompanhe o desempenho do seu perfil</p>
     </div>
 
-    <div class="space-y-6">
+    <!-- Loading -->
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto mb-4"></div>
+      <p class="text-gray-600">Carregando analytics...</p>
+    </div>
+
+    <div v-else class="space-y-6">
+      <!-- Período Seletor -->
+      <div class="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4">
+        <h3 class="font-semibold">Período:</h3>
+        <div class="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            :class="selectedPeriod === 7 ? 'bg-rose-50 border-rose-300' : ''"
+            @click="changePeriod(7)"
+          >
+            7 dias
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            :class="selectedPeriod === 30 ? 'bg-rose-50 border-rose-300' : ''"
+            @click="changePeriod(30)"
+          >
+            30 dias
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            :class="selectedPeriod === 90 ? 'bg-rose-50 border-rose-300' : ''"
+            @click="changePeriod(90)"
+          >
+            90 dias
+          </Button>
+        </div>
+      </div>
+
       <!-- Métricas Principais -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card class="p-6">
-          <h3 class="font-semibold mb-2">Total de Visualizações</h3>
-          <p class="text-3xl font-bold text-blue-600">127</p>
-          <p class="text-sm text-muted-foreground">+23% este mês</p>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold">Total de Visualizações</h3>
+            <Eye class="w-5 h-5 text-blue-600" />
+          </div>
+          <p class="text-3xl font-bold text-blue-600 mb-1">{{ analytics.currentPeriod.views }}</p>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="font-medium" :class="viewsGrowth >= 0 ? 'text-green-600' : 'text-red-600'">
+              {{ viewsGrowth >= 0 ? '+' : '' }}{{ viewsGrowth }}%
+            </span>
+            <span class="text-muted-foreground">vs período anterior</span>
+          </div>
         </Card>
 
         <Card class="p-6">
-          <h3 class="font-semibold mb-2">Cliques no WhatsApp</h3>
-          <p class="text-3xl font-bold text-green-600">34</p>
-          <p class="text-sm text-muted-foreground">+15% este mês</p>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold">Cliques no WhatsApp</h3>
+            <MessageCircle class="w-5 h-5 text-green-600" />
+          </div>
+          <p class="text-3xl font-bold text-green-600 mb-1">{{ analytics.currentPeriod.clicks }}</p>
+          <div class="flex items-center gap-2 text-sm">
+            <span
+              class="font-medium"
+              :class="clicksGrowth >= 0 ? 'text-green-600' : 'text-red-600'"
+            >
+              {{ clicksGrowth >= 0 ? '+' : '' }}{{ clicksGrowth }}%
+            </span>
+            <span class="text-muted-foreground">vs período anterior</span>
+          </div>
         </Card>
 
         <Card class="p-6">
-          <h3 class="font-semibold mb-2">Taxa de Conversão</h3>
-          <p class="text-3xl font-bold text-purple-600">26.8%</p>
-          <p class="text-sm text-muted-foreground">-2% este mês</p>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold">Taxa de Conversão</h3>
+            <TrendingUp class="w-5 h-5 text-purple-600" />
+          </div>
+          <p class="text-3xl font-bold text-purple-600 mb-1">{{ conversionRate }}%</p>
+          <div class="flex items-center gap-2 text-sm">
+            <span
+              class="font-medium"
+              :class="conversionGrowth >= 0 ? 'text-green-600' : 'text-red-600'"
+            >
+              {{ conversionGrowth >= 0 ? '+' : '' }}{{ Math.abs(conversionGrowth) }}pp
+            </span>
+            <span class="text-muted-foreground">vs período anterior</span>
+          </div>
+        </Card>
+
+        <Card class="p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold">Média Diária</h3>
+            <Calendar class="w-5 h-5 text-orange-600" />
+          </div>
+          <p class="text-3xl font-bold text-orange-600 mb-1">{{ dailyAverage }}</p>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-muted-foreground">visualizações por dia</span>
+          </div>
         </Card>
       </div>
 
-      <!-- Gráfico Placeholder -->
+      <!-- Detalhamento por Período -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Visualizações Detalhadas -->
+        <Card class="p-6">
+          <h3 class="font-semibold mb-4">Visualizações por Período</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm font-medium">Últimos 7 dias</span>
+              <span class="text-lg font-bold text-blue-600">{{ analytics.last7Days.views }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm font-medium">Últimos 30 dias</span>
+              <span class="text-lg font-bold text-blue-600">{{ analytics.last30Days.views }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm font-medium">Últimos 90 dias</span>
+              <span class="text-lg font-bold text-blue-600">{{ analytics.last90Days.views }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm font-medium">Total (desde o início)</span>
+              <span class="text-lg font-bold text-blue-600">{{ analytics.total.views }}</span>
+            </div>
+          </div>
+        </Card>
+
+        <!-- Conversões Detalhadas -->
+        <Card class="p-6">
+          <h3 class="font-semibold mb-4">Contatos WhatsApp por Período</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm font-medium">Últimos 7 dias</span>
+              <div class="text-right">
+                <div class="text-lg font-bold text-green-600">{{ analytics.last7Days.clicks }}</div>
+                <div class="text-xs text-gray-500">
+                  {{ getConversionRate(analytics.last7Days.clicks, analytics.last7Days.views) }}%
+                  conversão
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm font-medium">Últimos 30 dias</span>
+              <div class="text-right">
+                <div class="text-lg font-bold text-green-600">
+                  {{ analytics.last30Days.clicks }}
+                </div>
+                <div class="text-xs text-gray-500">
+                  {{ getConversionRate(analytics.last30Days.clicks, analytics.last30Days.views) }}%
+                  conversão
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm font-medium">Últimos 90 dias</span>
+              <div class="text-right">
+                <div class="text-lg font-bold text-green-600">
+                  {{ analytics.last90Days.clicks }}
+                </div>
+                <div class="text-xs text-gray-500">
+                  {{ getConversionRate(analytics.last90Days.clicks, analytics.last90Days.views) }}%
+                  conversão
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm font-medium">Total (desde o início)</span>
+              <div class="text-right">
+                <div class="text-lg font-bold text-green-600">{{ analytics.total.clicks }}</div>
+                <div class="text-xs text-gray-500">
+                  {{ getConversionRate(analytics.total.clicks, analytics.total.views) }}% conversão
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <!-- Horários de Pico -->
       <Card class="p-6">
-        <h3 class="font-semibold mb-4">Visualizações nos Últimos 30 Dias</h3>
+        <h3 class="font-semibold mb-4">Horários de Maior Visualização</h3>
+        <div v-if="peakHours.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div
+            v-for="hour in peakHours"
+            :key="hour.hour"
+            class="text-center p-4 bg-blue-50 rounded-lg"
+          >
+            <div class="text-2xl font-bold text-blue-600">{{ hour.hour }}h</div>
+            <div class="text-sm text-gray-600">{{ hour.count }} visualizações</div>
+          </div>
+        </div>
+        <div v-else class="text-center py-8 text-gray-500">
+          Dados insuficientes para análise de horários
+        </div>
+      </Card>
+
+      <!-- Insights e Recomendações -->
+      <Card class="p-6">
+        <h3 class="font-semibold mb-4">Insights e Recomendações</h3>
+        <div class="space-y-4">
+          <div v-if="insights.length > 0">
+            <div
+              v-for="(insight, index) in insights"
+              :key="index"
+              class="flex items-start gap-3 p-4 rounded-lg"
+              :class="
+                insight.type === 'positive'
+                  ? 'bg-green-50 border border-green-200'
+                  : insight.type === 'warning'
+                    ? 'bg-yellow-50 border border-yellow-200'
+                    : 'bg-blue-50 border border-blue-200'
+              "
+            >
+              <div class="text-2xl">{{ insight.emoji }}</div>
+              <div>
+                <h4 class="font-medium mb-1">{{ insight.title }}</h4>
+                <p class="text-sm text-gray-600">{{ insight.description }}</p>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-center py-8 text-gray-500">
+            Continue usando a plataforma para receber insights personalizados
+          </div>
+        </div>
+      </Card>
+
+      <!-- Placeholder para Gráfico -->
+      <Card class="p-6">
+        <h3 class="font-semibold mb-4">Evolução ao Longo do Tempo</h3>
         <div class="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-          <p class="text-muted-foreground">Gráfico será implementado em breve</p>
+          <div class="text-center">
+            <BarChart3 class="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p class="text-gray-600 font-medium">Gráfico será implementado em breve</p>
+            <p class="text-gray-500 text-sm">Visualizações e cliques ao longo do tempo</p>
+          </div>
         </div>
       </Card>
     </div>
@@ -45,4 +251,329 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { supabase } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
+import { BarChart3, Calendar, Eye, MessageCircle, TrendingUp } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+// Estados
+const loading = ref(true)
+const selectedPeriod = ref(30)
+const professionalId = ref<string | null>(null)
+
+const analytics = ref({
+  currentPeriod: { views: 0, clicks: 0 },
+  previousPeriod: { views: 0, clicks: 0 },
+  last7Days: { views: 0, clicks: 0 },
+  last30Days: { views: 0, clicks: 0 },
+  last90Days: { views: 0, clicks: 0 },
+  total: { views: 0, clicks: 0 },
+})
+
+const peakHours = ref<Array<{ hour: number; count: number }>>([])
+
+// Computed
+const conversionRate = computed(() => {
+  if (analytics.value.currentPeriod.views === 0) return 0
+  return Math.round(
+    (analytics.value.currentPeriod.clicks / analytics.value.currentPeriod.views) * 100,
+  )
+})
+
+const previousConversionRate = computed(() => {
+  if (analytics.value.previousPeriod.views === 0) return 0
+  return Math.round(
+    (analytics.value.previousPeriod.clicks / analytics.value.previousPeriod.views) * 100,
+  )
+})
+
+const viewsGrowth = computed(() => {
+  if (analytics.value.previousPeriod.views === 0) return 0
+  return Math.round(
+    ((analytics.value.currentPeriod.views - analytics.value.previousPeriod.views) /
+      analytics.value.previousPeriod.views) *
+      100,
+  )
+})
+
+const clicksGrowth = computed(() => {
+  if (analytics.value.previousPeriod.clicks === 0) return 0
+  return Math.round(
+    ((analytics.value.currentPeriod.clicks - analytics.value.previousPeriod.clicks) /
+      analytics.value.previousPeriod.clicks) *
+      100,
+  )
+})
+
+const conversionGrowth = computed(() => {
+  return conversionRate.value - previousConversionRate.value
+})
+
+const dailyAverage = computed(() => {
+  if (selectedPeriod.value === 0) return 0
+  return Math.round(analytics.value.currentPeriod.views / selectedPeriod.value)
+})
+
+const insights = computed(() => {
+  const insightsList = []
+
+  // Insight sobre conversão
+  if (conversionRate.value > 25) {
+    insightsList.push({
+      type: 'positive',
+      emoji: '🎯',
+      title: 'Ótima taxa de conversão!',
+      description: `Sua taxa de conversão de ${conversionRate.value}% está acima da média. Continue assim!`,
+    })
+  } else if (conversionRate.value < 15) {
+    insightsList.push({
+      type: 'warning',
+      emoji: '📈',
+      title: 'Melhore sua taxa de conversão',
+      description: 'Adicione mais fotos e melhore sua descrição para aumentar os contatos.',
+    })
+  }
+
+  // Insight sobre crescimento
+  if (viewsGrowth.value > 20) {
+    insightsList.push({
+      type: 'positive',
+      emoji: '🚀',
+      title: 'Crescimento acelerado!',
+      description: `Suas visualizações cresceram ${viewsGrowth.value}% no período. Ótimo trabalho!`,
+    })
+  } else if (viewsGrowth.value < 0) {
+    insightsList.push({
+      type: 'info',
+      emoji: '💡',
+      title: 'Dica para mais visibilidade',
+      description:
+        'Atualize seu perfil regularmente e adicione fotos para aparecer mais nas buscas.',
+    })
+  }
+
+  // Insight sobre fotos
+  if (analytics.value.total.views > 50 && conversionRate.value < 20) {
+    insightsList.push({
+      type: 'info',
+      emoji: '📸',
+      title: 'Adicione mais fotos',
+      description: 'Profissionais com mais fotos têm até 3x mais contatos via WhatsApp.',
+    })
+  }
+
+  return insightsList
+})
+
+// Carregar ID do profissional
+async function loadProfessionalId() {
+  if (!authStore.user?.id) {
+    router.push('/login')
+    return false
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('professionals')
+      .select('id')
+      .eq('user_id', authStore.user.id)
+      .single()
+
+    if (error) throw error
+
+    professionalId.value = data.id
+    return true
+  } catch (err) {
+    console.error('Erro ao carregar profissional:', err)
+    return false
+  }
+}
+
+// Carregar analytics por período
+async function loadAnalyticsByPeriod(days: number) {
+  if (!professionalId.value) return { views: 0, clicks: 0 }
+
+  try {
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+
+    // Views
+    const { data: views, error: viewsError } = await supabase
+      .from('profile_views')
+      .select('id')
+      .eq('professional_id', professionalId.value)
+      .gte('created_at', startDate.toISOString())
+
+    if (viewsError) throw viewsError
+
+    // Clicks
+    const { data: clicks, error: clicksError } = await supabase
+      .from('whatsapp_clicks')
+      .select('id')
+      .eq('professional_id', professionalId.value)
+      .gte('created_at', startDate.toISOString())
+
+    if (clicksError) throw clicksError
+
+    return {
+      views: views?.length || 0,
+      clicks: clicks?.length || 0,
+    }
+  } catch (err) {
+    console.error(`Erro ao carregar analytics de ${days} dias:`, err)
+    return { views: 0, clicks: 0 }
+  }
+}
+
+// Carregar analytics totais
+async function loadTotalAnalytics() {
+  if (!professionalId.value) return { views: 0, clicks: 0 }
+
+  try {
+    // Views totais
+    const { data: views, error: viewsError } = await supabase
+      .from('profile_views')
+      .select('id')
+      .eq('professional_id', professionalId.value)
+
+    if (viewsError) throw viewsError
+
+    // Clicks totais
+    const { data: clicks, error: clicksError } = await supabase
+      .from('whatsapp_clicks')
+      .select('id')
+      .eq('professional_id', professionalId.value)
+
+    if (clicksError) throw clicksError
+
+    return {
+      views: views?.length || 0,
+      clicks: clicks?.length || 0,
+    }
+  } catch (err) {
+    console.error('Erro ao carregar analytics totais:', err)
+    return { views: 0, clicks: 0 }
+  }
+}
+
+// Carregar horários de pico
+async function loadPeakHours() {
+  if (!professionalId.value) return
+
+  try {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const { data, error } = await supabase
+      .from('profile_views')
+      .select('created_at')
+      .eq('professional_id', professionalId.value)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+
+    if (error) throw error
+
+    // Agrupar por hora
+    const hourCounts: Record<number, number> = {}
+
+    data?.forEach((view) => {
+      const hour = new Date(view.created_at).getHours()
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1
+    })
+
+    // Pegar top 4 horários
+    peakHours.value = Object.entries(hourCounts)
+      .map(([hour, count]) => ({ hour: parseInt(hour), count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4)
+  } catch (err) {
+    console.error('Erro ao carregar horários de pico:', err)
+  }
+}
+
+// Carregar todos os analytics
+async function loadAllAnalytics() {
+  loading.value = true
+
+  try {
+    const hasValidProfessional = await loadProfessionalId()
+    if (!hasValidProfessional) return
+
+    // Carregar analytics por período
+    const [
+      currentPeriodData,
+      previousPeriodData,
+      last7DaysData,
+      last30DaysData,
+      last90DaysData,
+      totalData,
+    ] = await Promise.all([
+      loadAnalyticsByPeriod(selectedPeriod.value),
+      loadAnalyticsByPeriod(selectedPeriod.value * 2), // Período anterior para comparação
+      loadAnalyticsByPeriod(7),
+      loadAnalyticsByPeriod(30),
+      loadAnalyticsByPeriod(90),
+      loadTotalAnalytics(),
+    ])
+
+    // Calcular período anterior correto
+    const previousStart = new Date()
+    previousStart.setDate(previousStart.getDate() - selectedPeriod.value * 2)
+    const previousEnd = new Date()
+    previousEnd.setDate(previousEnd.getDate() - selectedPeriod.value)
+
+    // Buscar dados do período anterior específico
+    const { data: previousViews } = await supabase
+      .from('profile_views')
+      .select('id')
+      .eq('professional_id', professionalId.value!)
+      .gte('created_at', previousStart.toISOString())
+      .lt('created_at', previousEnd.toISOString())
+
+    const { data: previousClicks } = await supabase
+      .from('whatsapp_clicks')
+      .select('id')
+      .eq('professional_id', professionalId.value!)
+      .gte('created_at', previousStart.toISOString())
+      .lt('created_at', previousEnd.toISOString())
+
+    analytics.value = {
+      currentPeriod: currentPeriodData,
+      previousPeriod: {
+        views: previousViews?.length || 0,
+        clicks: previousClicks?.length || 0,
+      },
+      last7Days: last7DaysData,
+      last30Days: last30DaysData,
+      last90Days: last90DaysData,
+      total: totalData,
+    }
+
+    // Carregar horários de pico
+    await loadPeakHours()
+  } catch (err) {
+    console.error('Erro ao carregar analytics:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Mudar período
+async function changePeriod(days: number) {
+  selectedPeriod.value = days
+  await loadAllAnalytics()
+}
+
+// Helper para calcular taxa de conversão
+function getConversionRate(clicks: number, views: number): number {
+  if (views === 0) return 0
+  return Math.round((clicks / views) * 100)
+}
+
+onMounted(() => {
+  loadAllAnalytics()
+})
 </script>

@@ -1,150 +1,147 @@
-<!-- src/pages/auth/Login.vue -->
+<!-- src/pages/auth/Login.vue - Versão completa -->
 <template>
-  <div class="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-    <Card class="w-full max-w-md">
-      <div class="p-6">
-        <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold">{{ isLogin ? 'Entrar' : 'Cadastrar' }}</h1>
-          <p class="text-muted-foreground mt-2">
-            {{ isLogin ? 'Acesse sua conta profissional' : 'Crie sua conta profissional' }}
-          </p>
+  <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="text-center">
+        <div class="mx-auto w-12 h-12 bg-rose-500 rounded-lg flex items-center justify-center mb-4">
+          <span class="text-white font-bold text-xl">A</span>
         </div>
+        <h2 class="text-3xl font-bold text-gray-900">ACHOU</h2>
+        <p class="mt-2 text-sm text-gray-600">
+          {{ isLogin ? 'Entre na sua conta' : 'Crie sua conta profissional' }}
+        </p>
+      </div>
+    </div>
 
-        <form @submit.prevent="handleSubmit" class="space-y-4">
-          <div>
-            <label class="text-sm font-medium block mb-1">Email</label>
-            <Input
-              v-model="form.email"
-              type="email"
-              required
-              placeholder="seu@email.com"
-              :disabled="loading"
-            />
-          </div>
-
-          <div>
-            <label class="text-sm font-medium block mb-1">Senha</label>
-            <Input
-              v-model="form.password"
-              type="password"
-              required
-              placeholder="••••••••"
-              :disabled="loading"
-            />
-          </div>
-
-          <div v-if="!isLogin" class="space-y-4">
-            <div>
-              <label class="text-sm font-medium block mb-1">Nome Completo</label>
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <form @submit.prevent="handleSubmit" class="space-y-6">
+          <!-- Nome (só no cadastro) -->
+          <div v-if="!isLogin">
+            <label for="name" class="block text-sm font-medium text-gray-700">
+              Nome completo
+            </label>
+            <div class="mt-1">
               <Input
+                id="name"
                 v-model="form.name"
                 type="text"
                 required
+                class="w-full"
                 placeholder="Seu nome completo"
-                :disabled="loading"
               />
-            </div>
-
-            <div>
-              <label class="text-sm font-medium block mb-1">Telefone</label>
-              <Input
-                v-model="form.phone"
-                type="tel"
-                required
-                placeholder="(85) 99999-9999"
-                :disabled="loading"
-              />
-            </div>
-
-            <div>
-              <label class="text-sm font-medium block mb-1">Categoria</label>
-              <Select v-model="form.category" :disabled="loading">
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione sua profissão" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dentista">Dentista</SelectItem>
-                  <SelectItem value="advogado">Advogado</SelectItem>
-                  <SelectItem value="psicologo">Psicólogo</SelectItem>
-                  <SelectItem value="contador">Contador</SelectItem>
-                  <SelectItem value="arquiteto">Arquiteto</SelectItem>
-                  <SelectItem value="medico">Médico</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
-          <Button type="submit" class="w-full" :disabled="loading">
-            {{ loading ? 'Carregando...' : isLogin ? 'Entrar' : 'Cadastrar' }}
-          </Button>
+          <!-- Email -->
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700"> Email </label>
+            <div class="mt-1">
+              <Input
+                id="email"
+                v-model="form.email"
+                type="email"
+                required
+                class="w-full"
+                placeholder="seu@email.com"
+              />
+            </div>
+          </div>
 
-          <div v-if="error" class="text-red-600 text-sm text-center">
-            {{ error }}
+          <!-- Senha -->
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700"> Senha </label>
+            <div class="mt-1">
+              <Input
+                id="password"
+                v-model="form.password"
+                type="password"
+                required
+                class="w-full"
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+          </div>
+
+          <!-- Erro -->
+          <div v-if="error" class="bg-red-50 border border-red-200 p-3 rounded-md">
+            <p class="text-sm text-red-600">{{ error }}</p>
+          </div>
+
+          <!-- Submit -->
+          <div>
+            <Button type="submit" :disabled="loading" class="w-full bg-rose-500 hover:bg-rose-600">
+              <div v-if="loading" class="flex items-center justify-center gap-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                {{ isLogin ? 'Entrando...' : 'Criando conta...' }}
+              </div>
+              <span v-else>
+                {{ isLogin ? 'Entrar' : 'Criar conta' }}
+              </span>
+            </Button>
+          </div>
+
+          <!-- Esqueci a senha (só no login) -->
+          <div v-if="isLogin" class="text-center">
+            <router-link to="/esqueci-senha" class="text-sm text-gray-600 hover:text-gray-500">
+              Esqueceu sua senha?
+            </router-link>
+          </div>
+
+          <!-- Toggle -->
+          <div class="text-center">
+            <button
+              type="button"
+              @click="toggleMode"
+              class="text-sm text-rose-600 hover:text-rose-500"
+            >
+              {{ isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entre aqui' }}
+            </button>
           </div>
         </form>
 
-        <div class="text-center mt-6">
-          <button
-            @click="toggleMode"
-            class="text-sm text-muted-foreground hover:underline"
-            :disabled="loading"
-          >
-            {{ isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entre' }}
-          </button>
-        </div>
-
-        <div class="mt-6 pt-6 border-t text-center">
-          <p class="text-xs text-muted-foreground">
-            Ao se cadastrar, você concorda que possui uma sala comercial e aceita pagar R$ 9,99/mês
-            após o período de teste.
-          </p>
+        <!-- Info adicional -->
+        <div v-if="!isLogin" class="mt-6 border-t border-gray-200 pt-6">
+          <div class="text-sm text-gray-600 space-y-2">
+            <p class="font-medium">✓ 7 dias grátis para testar</p>
+            <p>✓ Apareça nas buscas</p>
+            <p>✓ Receba contatos de clientes</p>
+            <p>✓ Cancele quando quiser</p>
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import type { SignUpData } from '@/stores/auth'
 import { useAuthStore } from '@/stores/auth'
 import { reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const route = useRoute()
 const authStore = useAuthStore()
 
 const isLogin = ref(true)
 const loading = ref(false)
 const error = ref('')
 
+// Form data como objeto simples
 const form = reactive({
+  name: '',
   email: '',
   password: '',
-  name: '',
-  phone: '',
-  category: '',
 })
 
 function toggleMode() {
   isLogin.value = !isLogin.value
   error.value = ''
-  // Limpar campos específicos do cadastro
-  if (isLogin.value) {
-    form.name = ''
-    form.phone = ''
-    form.category = ''
-  }
+  // Limpar formulário
+  form.name = ''
+  form.email = ''
+  form.password = ''
 }
 
 async function handleSubmit() {
@@ -152,33 +149,69 @@ async function handleSubmit() {
   error.value = ''
 
   try {
-    if (isLogin.value) {
-      // LOGIN: usa email e password
-      await authStore.signIn(form.email, form.password)
-    } else {
-      // CADASTRO: valida campos obrigatórios
-      if (!form.name || !form.phone || !form.category) {
-        throw new Error('Todos os campos são obrigatórios')
-      }
-
-      // Criar objeto SignUpData
-      const signUpData: SignUpData = {
-        email: form.email,
-        password: form.password,
-        name: form.name,
-        phone: form.phone,
-        category: form.category,
-      }
-
-      await authStore.signUp(signUpData)
+    // Validações básicas
+    if (!form.email || !form.password) {
+      throw new Error('Email e senha são obrigatórios')
     }
 
-    // Redirecionar para onde estava tentando ir ou dashboard
-    const redirect = route.query.redirect as string
-    router.push(redirect || '/dashboard')
-  } catch (err: any) {
-    error.value = err.message || 'Erro ao processar solicitação'
+    if (form.password.length < 6) {
+      throw new Error('Senha deve ter pelo menos 6 caracteres')
+    }
+
+    if (!isLogin.value && !form.name) {
+      throw new Error('Nome é obrigatório para cadastro')
+    }
+
+    if (isLogin.value) {
+      // Login - enviar apenas email e password como strings
+      await authStore.signIn(form.email.trim(), form.password)
+      // Sucesso - redirecionar
+      router.push('/dashboard')
+    } else {
+      // Cadastro - enviar apenas email e password como strings
+      await authStore.signUp(form.email.trim(), form.password)
+
+      // Após cadastro, redirecionar para página de confirmação com email na URL
+      router.push({
+        path: '/confirmar-email',
+        query: { email: form.email.trim() },
+      })
+    }
+  } catch (err) {
     console.error('Erro na autenticação:', err)
+
+    // Detectar erro de email não confirmado
+    if (err instanceof Error) {
+      if (
+        err.message.includes('Email not confirmed') ||
+        err.message.includes('email_not_confirmed') ||
+        err.message.includes('not confirmed')
+      ) {
+        // Redirecionar para página de confirmação
+        router.push({
+          path: '/confirmar-email',
+          query: { email: form.email.trim() },
+        })
+        return
+      }
+
+      // Outros erros comuns
+      if (err.message.includes('Invalid login credentials')) {
+        error.value = 'Email ou senha incorretos'
+      } else if (err.message.includes('User already registered')) {
+        error.value = 'Este email já está cadastrado. Tente fazer login.'
+      } else if (err.message.includes('Password should be at least 6 characters')) {
+        error.value = 'A senha deve ter pelo menos 6 caracteres'
+      } else if (err.message.includes('Unable to validate email address')) {
+        error.value = 'Email inválido'
+      } else if (err.message.includes('signup is disabled')) {
+        error.value = 'Cadastros temporariamente desabilitados'
+      } else {
+        error.value = err.message
+      }
+    } else {
+      error.value = 'Erro desconhecido'
+    }
   } finally {
     loading.value = false
   }

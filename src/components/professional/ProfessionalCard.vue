@@ -1,50 +1,83 @@
-<!-- src/components/professional/ProfessionalCard.vue -->
+<!-- src/components/professional/ProfessionalCard.vue - Com campo complexo -->
 <template>
-  <Card
-    class="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+  <div
+    class="group cursor-pointer transition-transform hover:scale-[1.02] duration-300"
     @click="handleCardClick"
   >
     <!-- Foto Principal -->
-    <div class="aspect-video bg-gray-200 relative">
+    <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4">
       <img
         v-if="primaryPhoto"
         :src="primaryPhoto.photo_url"
         :alt="`Sala de ${professional.name}`"
-        class="w-full h-full object-cover"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
       />
-      <div v-else class="w-full h-full flex items-center justify-center text-muted-foreground">
-        📷 Sem foto
+      <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
+        <div class="text-center text-gray-400">
+          <div class="text-4xl mb-2">📷</div>
+          <p class="text-sm">Sem foto</p>
+        </div>
       </div>
 
       <!-- Badge da categoria -->
-      <Badge variant="secondary" class="absolute top-2 left-2">
-        {{ professional.category }}
-      </Badge>
+      <div class="absolute top-3 left-3">
+        <span
+          class="bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm"
+        >
+          {{ professional.category }}
+        </span>
+      </div>
+
+      <!-- Botão de favorito (futuro) -->
+      <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          class="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+        >
+          <Heart class="w-4 h-4 text-gray-600" />
+        </button>
+      </div>
     </div>
 
     <!-- Conteúdo -->
-    <div class="p-4">
-      <h3 class="font-semibold text-lg mb-1 line-clamp-1">{{ professional.name }}</h3>
-      <p class="text-sm text-muted-foreground mb-2 line-clamp-1">{{ professional.city }}</p>
+    <div class="space-y-2">
+      <!-- Local com Complexo -->
+      <div class="text-gray-500 text-sm space-y-1">
+        <p v-if="professional.complex_name" class="font-medium flex items-center gap-1">
+          🏢 {{ professional.complex_name }}
+        </p>
+        <p class="flex items-center gap-1">📍 {{ professional.city }}, CE</p>
+      </div>
 
-      <!-- Descrição se houver -->
-      <p v-if="professional.description" class="text-sm text-muted-foreground mb-3 line-clamp-2">
+      <!-- Nome -->
+      <h3 class="font-semibold text-gray-900 text-lg leading-tight line-clamp-1">
+        {{ professional.name }}
+      </h3>
+
+      <!-- Descrição -->
+      <p v-if="professional.description" class="text-gray-600 text-sm line-clamp-2 leading-relaxed">
         {{ professional.description }}
       </p>
 
-      <div class="flex justify-between items-center">
-        <span class="text-sm font-medium text-primary">R$ {{ professional.price_range }}</span>
-        <Button size="sm" @click.stop="handleButtonClick"> Ver Perfil </Button>
+      <!-- Preço -->
+      <div class="flex items-center justify-between pt-2">
+        <div class="flex items-baseline gap-1">
+          <span class="font-semibold text-gray-900">R$ {{ professional.price_range }}</span>
+          <span class="text-gray-500 text-sm">por consulta</span>
+        </div>
+
+        <!-- Rating (futuro) -->
+        <div class="flex items-center gap-1 text-sm">
+          <Star class="w-4 h-4 text-gray-400 fill-current" />
+          <span class="text-gray-600">Novo</span>
+        </div>
       </div>
     </div>
-  </Card>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import type { Professional } from '@/types'
+import { Heart, Star } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 const props = defineProps<{
@@ -72,8 +105,13 @@ function handleCardClick() {
   emit('viewProfile', props.professional.id)
 }
 
-function handleButtonClick() {
-  emit('viewProfile', props.professional.id)
+// Função para formatar distância
+function formatDistance(distance: number): string {
+  if (distance < 1) {
+    return `${Math.round(distance * 1000)}m de você`
+  } else {
+    return `${distance.toFixed(1)}km de você`
+  }
 }
 </script>
 
