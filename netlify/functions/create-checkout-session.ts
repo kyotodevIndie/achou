@@ -1,4 +1,3 @@
-// netlify/functions/create-checkout-session.ts - VERSÃO CORRIGIDA
 import type { Handler, HandlerContext, HandlerEvent } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
@@ -14,12 +13,6 @@ const supabase = createClient(
 )
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  console.log('Environment check:', {
-    hasUrl: !!process.env.VITE_SUPABASE_URL,
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    urlValue: process.env.VITE_SUPABASE_URL,
-    keyPrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20) + '...',
-  })
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -63,12 +56,32 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       .eq('id', plan_id)
       .single()
 
+    // DEBUG: Log detalhado do resultado
+    console.log('Plan query result:', {
+      plan,
+      planError,
+      planId: plan_id,
+      hasData: !!plan,
+      errorDetails: planError
+        ? {
+            message: planError.message,
+            details: planError.details,
+            hint: planError.hint,
+            code: planError.code,
+          }
+        : null,
+    })
+
     if (planError || !plan) {
       console.error('Plan not found:', planError)
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ error: 'Plan not found' }),
+        body: JSON.stringify({
+          error: 'Plan not found',
+          details: planError?.message || 'No plan data returned',
+          planId: plan_id,
+        }),
       }
     }
 
