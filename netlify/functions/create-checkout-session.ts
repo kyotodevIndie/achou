@@ -14,6 +14,12 @@ const supabase = createClient(
 )
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+  console.log('Environment check:', {
+    hasUrl: !!process.env.VITE_SUPABASE_URL,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    urlValue: process.env.VITE_SUPABASE_URL,
+    keyPrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20) + '...',
+  })
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
