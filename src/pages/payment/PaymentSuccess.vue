@@ -1,4 +1,4 @@
-<!-- src/pages/payment/PaymentSuccess.vue -->
+<!-- src/pages/payment/PaymentSuccess.vue - VERSÃO CORRIGIDA -->
 <template>
   <div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
     <div class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
@@ -28,11 +28,15 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
-            7 dias de teste gratuito ativados
+            Assinatura ativa por R$ 19,99/mês
           </li>
           <li class="flex items-start gap-2">
             <span class="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
-            Próximo pagamento apenas em 1 semana
+            Próximo pagamento em 30 dias
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
+            Cancele quando quiser, sem multas
           </li>
         </ul>
       </div>
@@ -71,6 +75,8 @@ onMounted(() => {
   const sessionId = route.query.session_id
   if (sessionId) {
     console.log('Stripe session ID:', sessionId)
+    // Você pode fazer uma chamada aqui para verificar o status da sessão
+    // se precisar de mais informações
   }
 })
 </script>

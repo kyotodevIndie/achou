@@ -108,6 +108,24 @@
       <p class="text-gray-600">Buscando profissionais...</p>
     </div>
 
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">{{ professionals.length }} profissionais encontrados</h2>
+
+      <Button @click="showMap = !showMap" variant="outline" class="flex items-center gap-2">
+        <MapPin class="w-4 h-4" />
+        {{ showMap ? 'Ocultar' : 'Ver no' }} mapa
+      </Button>
+    </div>
+
+    <!-- Mapa (quando showMap = true) -->
+    <div v-if="showMap" class="mb-6 h-[400px] rounded-lg overflow-hidden border border-gray-200">
+      <ProfessionalsMap
+        :professionals="professionals"
+        :selectedId="null"
+        @selectProfessional="handleSelectFromMap"
+      />
+    </div>
+
     <!-- Empty State -->
     <div v-else-if="professionals.length === 0" class="text-center py-16">
       <div class="text-gray-400 text-6xl mb-4">🔍</div>
@@ -225,6 +243,7 @@
 </template>
 
 <script setup lang="ts">
+import ProfessionalsMap from '@/components/maps/ProfessionalsMap.vue'
 import ProfessionalCard from '@/components/professional/ProfessionalCard.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -262,10 +281,15 @@ const selectedCity = ref('all')
 const viewMode = ref<'grid' | 'list'>('grid')
 const gettingLocation = ref(false)
 const userLocation = ref<{ latitude: number; longitude: number } | null>(null)
+const showMap = ref(false)
 
 const hasActiveFilters = computed(() =>
   Boolean(selectedCategory.value !== 'all' || selectedCity.value !== 'all' || searchQuery.value),
 )
+
+function handleSelectFromMap(professionalId: string) {
+  router.push(`/profissional/${professionalId}`)
+}
 
 const nearbyCount = computed(() => {
   if (!userLocation.value) return 0

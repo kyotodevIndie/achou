@@ -67,8 +67,17 @@
 
         <!-- Rating (futuro) -->
         <div class="flex items-center gap-1 text-sm">
-          <Star class="w-4 h-4 text-gray-400 fill-current" />
-          <span class="text-gray-600">Novo</span>
+          <template v-if="professional.average_rating && professional.review_count">
+            <Star class="w-4 h-4 text-yellow-400 fill-current" />
+            <span class="text-gray-900 font-medium">{{
+              professional.average_rating.toFixed(1)
+            }}</span>
+            <span class="text-gray-600">({{ professional.review_count }})</span>
+          </template>
+          <template v-else>
+            <Star class="w-4 h-4 text-gray-400" />
+            <span class="text-gray-600">Sem avaliações</span>
+          </template>
         </div>
       </div>
     </div>

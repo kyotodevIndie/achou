@@ -1,4 +1,4 @@
-<!-- src/pages/dashboard/EditProfile.vue - VERSÃO CORRIGIDA SEM DUPLICAÇÕES -->
+<!-- src/pages/dashboard/EditProfile.vue - VERSÃO COMPLETA COM COMPRESSÃO -->
 <template>
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto p-4">
@@ -44,6 +44,11 @@
               </div>
             </div>
 
+            <!-- Seletor de Localização no Mapa -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <MapPicker v-model="location" :initialCenter="{ lat: -3.7327, lng: -38.527 }" />
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label class="text-sm font-medium block mb-2">Categoria</label>
@@ -52,39 +57,24 @@
                     <SelectValue placeholder="Selecione sua profissão" />
                   </SelectTrigger>
                   <SelectContent>
-                    <!-- Saúde -->
                     <SelectItem value="dentista">🦷 Dentista</SelectItem>
                     <SelectItem value="medico">👨‍⚕️ Médico</SelectItem>
                     <SelectItem value="psicologo">🧠 Psicólogo</SelectItem>
                     <SelectItem value="nutricionista">🥗 Nutricionista</SelectItem>
                     <SelectItem value="fisioterapeuta">💪 Fisioterapeuta</SelectItem>
-
-                    <!-- Jurídico -->
                     <SelectItem value="advogado">⚖️ Advogado</SelectItem>
                     <SelectItem value="despachante">📋 Despachante</SelectItem>
-
-                    <!-- Financeiro -->
                     <SelectItem value="contador">💼 Contador</SelectItem>
                     <SelectItem value="consultor-financeiro">💰 Consultor Financeiro</SelectItem>
-
-                    <!-- Construção -->
-                    <SelectItem value="arquiteto">🏗️ Arquiteto</SelectItem>
+                    <SelectItem value="arquiteto">🗂️ Arquiteto</SelectItem>
                     <SelectItem value="engenheiro">👷‍♂️ Engenheiro Civil</SelectItem>
                     <SelectItem value="designer">🎨 Designer de Interiores</SelectItem>
-
-                    <!-- Beleza -->
                     <SelectItem value="esteticista">💅 Esteticista</SelectItem>
                     <SelectItem value="dermatologista">👩‍⚕️ Dermatologista</SelectItem>
-
-                    <!-- Educação -->
                     <SelectItem value="professor">📚 Professor Particular</SelectItem>
                     <SelectItem value="psicopedagogo">🎓 Psicopedagogo</SelectItem>
-
-                    <!-- Tecnologia -->
                     <SelectItem value="consultor-ti">💻 Consultor TI</SelectItem>
                     <SelectItem value="desenvolvedor">⌨️ Desenvolvedor</SelectItem>
-
-                    <!-- Consultoria -->
                     <SelectItem value="coach">🎯 Coach</SelectItem>
                     <SelectItem value="consultor-rh">👥 Consultor RH</SelectItem>
                   </SelectContent>
@@ -192,7 +182,7 @@
                     <SelectContent>
                       <SelectItem value="fast">⚡ Rápido (até 2h)</SelectItem>
                       <SelectItem value="medium">🕐 Normal (até 24h)</SelectItem>
-                      <SelectItem value="slow">🕒 Flexível (até 48h)</SelectItem>
+                      <SelectItem value="slow">🕑 Flexível (até 48h)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -237,20 +227,50 @@
 
         <!-- Fotos da Sala -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 class="text-xl font-semibold mb-6">Fotos da Sala</h2>
-          <p class="text-gray-600 mb-6">
-            Adicione fotos da sua sala comercial. A primeira foto será a principal.
-          </p>
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-xl font-semibold">Fotos da Sala</h2>
+              <p class="text-gray-600 text-sm mt-1">
+                {{ photos.length }} de {{ MAX_PHOTOS }} fotos • {{ photosRemaining }} restante(s)
+              </p>
+            </div>
+            <div v-if="!canAddMorePhotos" class="flex items-center gap-2 text-amber-600 text-sm">
+              <AlertCircle class="w-4 h-4" />
+              Limite atingido
+            </div>
+          </div>
 
           <!-- Upload de Fotos -->
           <div
-            class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6 hover:border-gray-400 transition-colors cursor-pointer"
+            v-if="canAddMorePhotos"
+            class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6 hover:border-gray-400 transition-colors"
+            :class="{
+              'opacity-50 cursor-not-allowed': uploading || compressing,
+              'cursor-pointer': !uploading && !compressing,
+            }"
             @click="triggerFileInput"
-            :class="{ 'opacity-50 cursor-not-allowed': uploading }"
           >
             <Upload class="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p class="text-gray-600 mb-2">Clique para adicionar fotos ou arraste aqui</p>
-            <p class="text-sm text-gray-500 mb-4">PNG, JPG até 5MB cada</p>
+            <p class="text-gray-600 mb-2">
+              {{
+                compressing
+                  ? 'Comprimindo imagens...'
+                  : 'Clique para adicionar fotos ou arraste aqui'
+              }}
+            </p>
+            <p class="text-sm text-gray-500 mb-4">PNG, JPG até 5MB • Será comprimido para ~0.8MB</p>
+
+            <!-- Progress bar durante compressão -->
+            <div v-if="compressing" class="w-full max-w-xs mx-auto mb-4">
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  class="bg-rose-500 h-2 rounded-full transition-all duration-300"
+                  :style="{ width: `${compressionProgress}%` }"
+                ></div>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">{{ compressionProgress }}% concluído</p>
+            </div>
+
             <input
               type="file"
               multiple
@@ -258,24 +278,29 @@
               @change="handleFileUpload"
               class="hidden"
               ref="fileInputRef"
-              :disabled="uploading"
+              :disabled="uploading || compressing"
             />
-            <Button type="button" variant="outline" :disabled="uploading">
+            <Button type="button" variant="outline" :disabled="uploading || compressing">
               <Camera class="w-4 h-4 mr-2" />
-              {{ uploading ? 'Enviando...' : 'Escolher Fotos' }}
+              {{ compressing ? 'Comprimindo...' : uploading ? 'Enviando...' : 'Escolher Fotos' }}
             </Button>
           </div>
 
+          <!-- Mensagem quando limite atingido -->
+          <div v-else class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <p class="text-amber-800 text-sm">
+              Você atingiu o limite de {{ MAX_PHOTOS }} fotos. Remova uma foto para adicionar outra.
+            </p>
+          </div>
+
           <!-- Grid de Fotos -->
-          <div
-            v-if="photos.length > 0"
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
+          <div v-if="photos.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div v-for="(photo, index) in photos" :key="photo.id" class="relative group">
               <img
                 :src="getPhotoUrl(photo)"
                 :alt="`Foto ${index + 1}`"
                 class="w-full aspect-video object-cover rounded-lg"
+                loading="lazy"
               />
 
               <!-- Overlay -->
@@ -318,19 +343,13 @@
             </div>
           </div>
 
-          <!-- Upload de Fotos - Estado de Loading -->
-          <div v-if="uploading" class="text-center py-8">
-            <div
-              class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto mb-2"
-            ></div>
-            <p class="text-gray-600">Fazendo upload das fotos...</p>
-          </div>
-
           <!-- Nenhuma foto -->
-          <div v-if="photos.length === 0 && !uploading" class="text-center py-8">
+          <div v-if="photos.length === 0 && !uploading && !compressing" class="text-center py-8">
             <Camera class="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <p class="text-gray-600">Nenhuma foto adicionada ainda</p>
-            <p class="text-sm text-gray-500">Adicione fotos para deixar seu perfil mais atrativo</p>
+            <p class="text-sm text-gray-500">
+              Adicione até {{ MAX_PHOTOS }} fotos para deixar seu perfil mais atrativo
+            </p>
           </div>
         </div>
       </div>
@@ -339,6 +358,7 @@
 </template>
 
 <script setup lang="ts">
+import MapPicker from '@/components/maps/MapPicker.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -351,24 +371,31 @@ import {
 import { supabase } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import type { Professional, ProfessionalPhoto } from '@/types'
-import { Camera, Star, Trash2, Upload } from 'lucide-vue-next'
+import imageCompression from 'browser-image-compression'
+import { AlertCircle, Camera, Star, Trash2, Upload } from 'lucide-vue-next'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
+// Constantes
+const MAX_PHOTOS = 3
+const MAX_FILE_SIZE_MB = 5 // Tamanho máximo do arquivo original
+const TARGET_COMPRESSED_SIZE_MB = 0.8 // Tamanho alvo após compressão
+
 // Estados
 const loadingProfile = ref(true)
 const saving = ref(false)
 const uploading = ref(false)
 const updatingPhotos = ref(false)
+const compressing = ref(false)
 const error = ref<string | null>(null)
 const showSuccessMessage = ref(false)
 const photos = ref<ProfessionalPhoto[]>([])
 const fileInputRef = ref<HTMLInputElement>()
+const compressionProgress = ref(0)
 
-// Dados iniciais para comparação
 const originalProfileForm = ref<Partial<Professional>>({})
 
 const profileForm = reactive({
@@ -385,12 +412,20 @@ const profileForm = reactive({
   accepts_urgent: false,
 })
 
-// Computed para detectar mudanças
+// Estado para localização no mapa
+const location = ref<{ latitude: number | null; longitude: number | null }>({
+  latitude: null,
+  longitude: null,
+})
+
+// Computed
 const hasChanges = computed(() => {
   return JSON.stringify(profileForm) !== JSON.stringify(originalProfileForm.value)
 })
 
-// Carregar perfil atual
+const canAddMorePhotos = computed(() => photos.value.length < MAX_PHOTOS)
+const photosRemaining = computed(() => MAX_PHOTOS - photos.value.length)
+
 async function loadCurrentProfile() {
   if (!authStore.user?.id) {
     router.push('/login')
@@ -401,7 +436,6 @@ async function loadCurrentProfile() {
   error.value = null
 
   try {
-    // Buscar dados do profissional
     const { data: professional, error: profError } = await supabase
       .from('professionals')
       .select('*')
@@ -409,7 +443,6 @@ async function loadCurrentProfile() {
       .single()
 
     if (profError) {
-      // Se não existe profissional, criar um novo
       if (profError.code === 'PGRST116') {
         await createProfessionalProfile()
         return
@@ -417,7 +450,6 @@ async function loadCurrentProfile() {
       throw profError
     }
 
-    // Preencher formulário
     Object.assign(profileForm, {
       name: professional.name || '',
       phone: professional.phone || '',
@@ -432,10 +464,13 @@ async function loadCurrentProfile() {
       accepts_urgent: professional.accepts_urgent || false,
     })
 
-    // Salvar estado original
-    originalProfileForm.value = { ...profileForm }
+    // Carregar coordenadas do mapa
+    location.value = {
+      latitude: professional.latitude || null,
+      longitude: professional.longitude || null,
+    }
 
-    // Carregar fotos
+    originalProfileForm.value = { ...profileForm }
     await loadPhotos(professional.id)
   } catch (err) {
     console.error('Erro ao carregar perfil:', err)
@@ -445,10 +480,9 @@ async function loadCurrentProfile() {
   }
 }
 
-// Criar perfil de profissional se não existir
 async function createProfessionalProfile() {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('professionals')
       .insert({
         user_id: authStore.user!.id,
@@ -466,8 +500,6 @@ async function createProfessionalProfile() {
       .single()
 
     if (error) throw error
-
-    // Recarregar após criar
     await loadCurrentProfile()
   } catch (err) {
     console.error('Erro ao criar perfil:', err)
@@ -475,7 +507,6 @@ async function createProfessionalProfile() {
   }
 }
 
-// Carregar fotos do profissional
 async function loadPhotos(professionalId: string) {
   try {
     const { data, error } = await supabase
@@ -486,14 +517,12 @@ async function loadPhotos(professionalId: string) {
       .order('created_at', { ascending: true })
 
     if (error) throw error
-
     photos.value = data || []
   } catch (err) {
     console.error('Erro ao carregar fotos:', err)
   }
 }
 
-// Salvar perfil
 async function saveProfile() {
   if (!authStore.user?.id) return
 
@@ -516,6 +545,8 @@ async function saveProfile() {
         price_range: profileForm.price_range,
         response_time: profileForm.response_time,
         accepts_urgent: profileForm.accepts_urgent,
+        latitude: location.value.latitude,
+        longitude: location.value.longitude,
         is_active: true,
         updated_at: new Date().toISOString(),
       })
@@ -523,10 +554,7 @@ async function saveProfile() {
 
     if (updateError) throw updateError
 
-    // Atualizar estado original
     originalProfileForm.value = { ...profileForm }
-
-    // Mostrar mensagem de sucesso
     showSuccessMessage.value = true
     setTimeout(() => {
       showSuccessMessage.value = false
@@ -539,9 +567,8 @@ async function saveProfile() {
   }
 }
 
-// Upload de arquivos
 function triggerFileInput() {
-  if (!uploading.value) {
+  if (!uploading.value && !compressing.value && canAddMorePhotos.value) {
     fileInputRef.value?.click()
   }
 }
@@ -551,11 +578,25 @@ async function handleFileUpload(event: Event) {
   const files = target.files
   if (!files || !authStore.user?.id) return
 
+  const availableSlots = MAX_PHOTOS - photos.value.length
+  if (availableSlots === 0) {
+    error.value = `Limite de ${MAX_PHOTOS} fotos atingido. Remova uma foto antes de adicionar outra.`
+    target.value = ''
+    return
+  }
+
+  const filesToUpload = Array.from(files).slice(0, availableSlots)
+
+  if (files.length > availableSlots) {
+    error.value = `Você só pode adicionar mais ${availableSlots} foto(s). As outras foram ignoradas.`
+  }
+
+  compressing.value = true
   uploading.value = true
   error.value = null
+  compressionProgress.value = 0
 
   try {
-    // Primeiro, buscar o ID do profissional
     const { data: professional, error: profError } = await supabase
       .from('professionals')
       .select('id')
@@ -565,75 +606,86 @@ async function handleFileUpload(event: Event) {
     if (profError) throw profError
 
     const professionalId = professional.id
+    const totalFiles = filesToUpload.length
 
-    for (const file of Array.from(files)) {
-      // Validar arquivo
-      if (file.size > 5 * 1024 * 1024) {
-        console.warn(`Arquivo ${file.name} é muito grande. Máximo 5MB.`)
-        continue
-      }
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const file = filesToUpload[i]
+      compressionProgress.value = Math.round((i / totalFiles) * 100)
 
+      // Validar tipo de arquivo
       if (!file.type.startsWith('image/')) {
         console.warn(`Arquivo ${file.name} não é uma imagem válida.`)
         continue
       }
 
-      // Gerar nome único para o arquivo
+      // VALIDAR TAMANHO ORIGINAL - MÁXIMO 5MB
+      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        const fileSizeMB = (file.size / 1024 / 1024).toFixed(1)
+        error.value = `A imagem "${file.name}" é muito grande (${fileSizeMB}MB). O tamanho máximo permitido é ${MAX_FILE_SIZE_MB}MB.`
+        continue
+      }
+
+      // Comprimir imagem para 0.8MB
+      const options = {
+        maxSizeMB: TARGET_COMPRESSED_SIZE_MB,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        quality: 0.8,
+      }
+
+      const compressedFile = await imageCompression(file, options)
+
       const fileExt = file.name.split('.').pop()
       const fileName = `${professionalId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
 
-      // Upload para Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('professional-photos')
-        .upload(fileName, file, {
+        .upload(fileName, compressedFile, {
           cacheControl: '3600',
           upsert: false,
         })
 
       if (uploadError) throw uploadError
 
-      // Obter URL pública
       const { data: urlData } = supabase.storage.from('professional-photos').getPublicUrl(fileName)
 
-      // Salvar referência no banco
       const { data: photoData, error: photoError } = await supabase
         .from('professional_photos')
         .insert({
           professional_id: professionalId,
           photo_url: urlData.publicUrl,
-          is_primary: photos.value.length === 0, // Primeira foto é principal
+          is_primary: photos.value.length === 0,
         })
         .select()
         .single()
 
       if (photoError) throw photoError
 
-      // Adicionar à lista local
       photos.value.push(photoData)
     }
+
+    compressionProgress.value = 100
   } catch (err) {
     console.error('Erro no upload:', err)
     error.value = err instanceof Error ? err.message : 'Erro ao fazer upload das fotos'
   } finally {
+    compressing.value = false
     uploading.value = false
-    // Limpar input
+    compressionProgress.value = 0
     if (target) target.value = ''
   }
 }
 
-// Obter URL da foto
 function getPhotoUrl(photo: ProfessionalPhoto): string {
   return photo.photo_url
 }
 
-// Definir foto principal
 async function setMainPhoto(photoId: string) {
   if (!authStore.user?.id) return
 
   updatingPhotos.value = true
 
   try {
-    // Buscar profissional
     const { data: professional, error: profError } = await supabase
       .from('professionals')
       .select('id')
@@ -642,13 +694,11 @@ async function setMainPhoto(photoId: string) {
 
     if (profError) throw profError
 
-    // Remover is_primary de todas as fotos
     await supabase
       .from('professional_photos')
       .update({ is_primary: false })
       .eq('professional_id', professional.id)
 
-    // Definir nova foto principal
     const { error: updateError } = await supabase
       .from('professional_photos')
       .update({ is_primary: true })
@@ -656,7 +706,6 @@ async function setMainPhoto(photoId: string) {
 
     if (updateError) throw updateError
 
-    // Atualizar estado local
     photos.value.forEach((photo) => {
       photo.is_primary = photo.id === photoId
     })
@@ -668,18 +717,15 @@ async function setMainPhoto(photoId: string) {
   }
 }
 
-// Remover foto
 async function removePhoto(photoId: string) {
   if (!confirm('Tem certeza que deseja remover esta foto?')) return
 
   updatingPhotos.value = true
 
   try {
-    // Buscar dados da foto
     const photoToRemove = photos.value.find((p) => p.id === photoId)
     if (!photoToRemove) return
 
-    // Tentar deletar do Storage usando a URL (extrair o path da URL)
     try {
       const url = new URL(photoToRemove.photo_url)
       const pathSegments = url.pathname.split('/')
@@ -689,20 +735,17 @@ async function removePhoto(photoId: string) {
         await supabase.storage.from('professional-photos').remove([filePath])
       }
     } catch (storageError) {
-      console.warn('Erro ao deletar do storage (continuando):', storageError)
+      console.warn('Erro ao deletar do storage:', storageError)
     }
 
-    // Remover do banco
     const { error } = await supabase.from('professional_photos').delete().eq('id', photoId)
 
     if (error) throw error
 
-    // Remover do estado local
     const removedIndex = photos.value.findIndex((p) => p.id === photoId)
     const wasMain = photos.value[removedIndex].is_primary
     photos.value.splice(removedIndex, 1)
 
-    // Se removeu a principal e ainda tem fotos, tornar a primeira como principal
     if (wasMain && photos.value.length > 0) {
       await setMainPhoto(photos.value[0].id)
     }
@@ -714,7 +757,6 @@ async function removePhoto(photoId: string) {
   }
 }
 
-// Limpar mensagens ao fazer mudanças
 watch(
   [profileForm],
   () => {

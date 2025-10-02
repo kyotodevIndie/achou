@@ -1,4 +1,4 @@
-<!-- src/pages/ProfessionalProfile.vue -->
+<!-- src/pages/Profile.vue - VERSÃO CORRIGIDA -->
 <template>
   <div class="min-h-screen bg-white">
     <div v-if="loading" class="container mx-auto p-4">
@@ -21,7 +21,7 @@
 
     <div v-else>
       <!-- Header com Breadcrumb -->
-      <div class="border-b border-gray-200 bg-white sticky top-16 z-40">
+      <div class="border-b border-gray-200 bg-white sticky top-0 z-40">
         <div class="container mx-auto px-4 py-4">
           <Button variant="ghost" @click="$router.back()" class="mb-2"> ← Voltar </Button>
           <h1 class="text-2xl font-bold text-gray-900">{{ professional.name }}</h1>
@@ -29,36 +29,44 @@
       </div>
 
       <!-- Galeria de Fotos -->
-      <section v-if="professional.photos?.length" class="container mx-auto px-4 py-6">
+      <section
+        v-if="professional.photos && professional.photos.length > 0"
+        class="container mx-auto px-4 py-6"
+      >
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 max-w-6xl mx-auto">
           <!-- Foto Principal -->
-          <div class="lg:row-span-2">
+          <div v-if="mainPhoto" class="lg:row-span-2">
             <img
               :src="mainPhoto.photo_url"
               :alt="`Sala de ${professional.name}`"
               class="w-full h-96 lg:h-full object-cover rounded-xl cursor-pointer hover:brightness-105 transition-all"
               @click="openGallery(0)"
+              loading="lazy"
             />
           </div>
 
           <!-- Fotos Secundárias -->
           <div class="grid grid-cols-2 gap-2">
-            <img
+            <div
               v-for="(photo, index) in secondaryPhotos.slice(0, 4)"
               :key="photo.id"
-              :src="photo.photo_url"
-              :alt="`Foto ${index + 2} da sala`"
-              class="w-full h-48 object-cover rounded-xl cursor-pointer hover:brightness-105 transition-all"
-              :class="{ relative: index === 3 && secondaryPhotos.length > 4 }"
-              @click="openGallery(index + 1)"
-            />
-            <!-- Overlay "Ver mais fotos" -->
-            <div
-              v-if="index === 3 && secondaryPhotos.length > 4"
-              class="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center cursor-pointer"
-              @click="openGallery(4)"
+              class="relative"
             >
-              <span class="text-white font-medium">+{{ secondaryPhotos.length - 4 }} fotos</span>
+              <img
+                :src="photo.photo_url"
+                :alt="`Foto ${index + 2} da sala`"
+                class="w-full h-48 object-cover rounded-xl cursor-pointer hover:brightness-105 transition-all"
+                @click="openGallery(index + 1)"
+                loading="lazy"
+              />
+              <!-- Overlay "Ver mais fotos" -->
+              <div
+                v-if="index === 3 && secondaryPhotos.length > 4"
+                class="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center cursor-pointer"
+                @click="openGallery(4)"
+              >
+                <span class="text-white font-medium">+{{ secondaryPhotos.length - 4 }} fotos</span>
+              </div>
             </div>
           </div>
         </div>
@@ -79,15 +87,25 @@
                     >
                       {{ professional.category }}
                     </span>
-                    <div class="flex items-center gap-1 text-sm text-gray-600">
-                      <Star class="w-4 h-4 text-yellow-400 fill-current" />
-                      <span>Novo no Achou</span>
+                    <div
+                      v-if="professional.verified"
+                      class="flex items-center gap-1 text-sm text-green-600"
+                    >
+                      <CheckCircle class="w-4 h-4" />
+                      <span>Verificado</span>
                     </div>
                   </div>
                   <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ professional.name }}</h2>
-                  <div class="flex items-center gap-2 text-gray-600 mb-4">
+                  <div class="flex items-center gap-2 text-gray-600 mb-2">
                     <MapPin class="w-4 h-4" />
                     <span>{{ professional.address }}, {{ professional.city }}</span>
+                  </div>
+                  <div
+                    v-if="professional.complex_name"
+                    class="flex items-center gap-2 text-gray-600"
+                  >
+                    <Building2 class="w-4 h-4" />
+                    <span>{{ professional.complex_name }}</span>
                   </div>
                 </div>
               </div>
@@ -113,35 +131,82 @@
               </div>
             </section>
 
-            <!-- Localização -->
+            <!-- Informações Adicionais -->
             <section>
-              <h3 class="text-xl font-semibold text-gray-900 mb-4">Localização</h3>
-              <div class="bg-gray-100 rounded-xl p-6">
-                <div class="flex items-center gap-2 mb-2">
-                  <MapPin class="w-5 h-5 text-gray-600" />
-                  <span class="font-medium">{{ professional.address }}</span>
+              <h3 class="text-xl font-semibold text-gray-900 mb-4">Informações</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex items-center gap-3 bg-gray-50 p-4 rounded-lg">
+                  <Clock class="w-5 h-5 text-gray-600" />
+                  <div>
+                    <p class="font-medium text-sm">Tempo de resposta</p>
+                    <p class="text-gray-600 text-sm">
+                      {{ getResponseTimeText(professional.response_time) }}
+                    </p>
+                  </div>
                 </div>
-                <p class="text-gray-600">{{ professional.city }}, Ceará</p>
-                <!-- Aqui poderia ter um mapa no futuro -->
-                <div class="mt-4 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span class="text-gray-500">Mapa em breve</span>
+
+                <div
+                  v-if="professional.accepts_urgent"
+                  class="flex items-center gap-3 bg-amber-50 p-4 rounded-lg"
+                >
+                  <Zap class="w-5 h-5 text-amber-600" />
+                  <div>
+                    <p class="font-medium text-sm">Urgência</p>
+                    <p class="text-amber-700 text-sm">Aceita atendimentos urgentes</p>
+                  </div>
                 </div>
               </div>
             </section>
+
+            <!-- Mapa de Localização -->
+            <section>
+              <h3 class="text-xl font-semibold text-gray-900 mb-4">Localização</h3>
+              <StaticMap
+                v-if="professional.latitude && professional.longitude"
+                :latitude="professional.latitude"
+                :longitude="professional.longitude"
+                :address="professional.address"
+                :complexName="professional.complex_name"
+                :professionalName="professional.name"
+                :zoom="16"
+              />
+              <div v-else class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <div class="flex items-start gap-3">
+                  <MapPin class="w-5 h-5 text-gray-600 mt-1" />
+                  <div>
+                    <p class="font-medium mb-1">{{ professional.address }}</p>
+                    <p class="text-gray-600">{{ professional.city }}, Ceará</p>
+                    <p v-if="professional.complex_name" class="text-gray-600 text-sm mt-2">
+                      🏢 {{ professional.complex_name }}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(professional.address + ', ' + professional.city)}`"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-2 mt-4 text-rose-600 hover:text-rose-700 font-medium text-sm"
+                >
+                  <Navigation class="w-4 h-4" />
+                  Ver no Google Maps
+                </a>
+              </div>
+            </section>
+
+            <!-- Seção de Reviews -->
+            <section>
+              <ReviewsList :reviews="reviews" @open-review-modal="openReviewModal" />
+            </section>
           </div>
 
-          <!-- Sidebar - Card de Reserva -->
+          <!-- Sidebar - Card de Contato -->
           <div class="lg:col-span-1">
-            <div class="sticky top-32">
+            <div class="sticky top-24">
               <div class="border border-gray-200 rounded-2xl p-6 shadow-lg">
                 <div class="mb-6">
                   <div class="flex items-baseline gap-2 mb-2">
                     <span class="text-2xl font-bold">R$ {{ professional.price_range }}</span>
                     <span class="text-gray-600">por consulta</span>
-                  </div>
-                  <div class="flex items-center gap-1 text-sm text-gray-600">
-                    <Star class="w-4 h-4 text-yellow-400 fill-current" />
-                    <span>Novo • 0 avaliações</span>
                   </div>
                 </div>
 
@@ -166,8 +231,10 @@
                       <Clock class="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <p class="font-medium">Resposta rápida</p>
-                      <p class="text-sm text-gray-600">Normalmente em 1 hora</p>
+                      <p class="font-medium">
+                        {{ getResponseTimeText(professional.response_time) }}
+                      </p>
+                      <p class="text-sm text-gray-600">Tempo de resposta</p>
                     </div>
                   </div>
                 </div>
@@ -191,67 +258,131 @@
       </div>
     </div>
 
-    <!-- Modal de Galeria (futuro) -->
+    <!-- Modal de Galeria -->
     <div
-      v-if="showGallery"
-      class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+      v-if="showGallery && professional && professional.photos"
+      class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
       @click="closeGallery"
     >
-      <div class="max-w-4xl max-h-full">
+      <Button
+        @click="closeGallery"
+        variant="outline"
+        class="absolute top-4 right-4 bg-white/10 border-white/20 text-white hover:bg-white/20"
+      >
+        <X class="w-5 h-5" />
+      </Button>
+
+      <div class="max-w-5xl max-h-full relative" @click.stop>
         <img
-          :src="professional.photos[currentPhotoIndex]?.photo_url"
+          v-if="professional.photos[currentPhotoIndex]"
+          :src="professional.photos[currentPhotoIndex].photo_url"
           :alt="`Foto ${currentPhotoIndex + 1}`"
-          class="max-w-full max-h-full object-contain"
+          class="max-w-full max-h-[85vh] object-contain rounded-lg"
         />
-        <Button
-          @click="closeGallery"
-          variant="outline"
-          class="absolute top-4 right-4 bg-white/10 border-white/20 text-white"
-        >
-          <X class="w-4 h-4" />
-        </Button>
+
+        <!-- Navegação -->
+        <div v-if="professional.photos.length > 1" class="flex items-center justify-between mt-4">
+          <Button
+            @click.stop="previousPhoto"
+            :disabled="currentPhotoIndex === 0"
+            variant="outline"
+            class="bg-white/10 border-white/20 text-white"
+          >
+            ← Anterior
+          </Button>
+
+          <span class="text-white">
+            {{ currentPhotoIndex + 1 }} / {{ professional.photos.length }}
+          </span>
+
+          <Button
+            @click.stop="nextPhoto"
+            :disabled="currentPhotoIndex === professional.photos.length - 1"
+            variant="outline"
+            class="bg-white/10 border-white/20 text-white"
+          >
+            Próxima →
+          </Button>
+        </div>
       </div>
     </div>
+
+    <!-- Modal de Review -->
+    <ReviewModal
+      v-if="professional"
+      :is-open="showReviewModal"
+      :professional-id="professional.id"
+      :professional-name="professional.name"
+      :category="professional.category"
+      @close="showReviewModal = false"
+      @submit="handleReviewSubmit"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import StaticMap from '@/components/maps/StaticMap.vue'
+import ReviewModal from '@/components/reviews/ReviewModal.vue'
+import ReviewsList from '@/components/reviews/ReviewsList.vue'
 import { Button } from '@/components/ui/button'
 import { useProfessionalsStore } from '@/stores/professionals'
-import { Clock, MapPin, MessageCircle, Phone, Star, X } from 'lucide-vue-next'
+import { useReviewsStore } from '@/stores/reviews'
+import type { ProfessionalPhoto } from '@/types'
+import {
+  Building2,
+  CheckCircle,
+  Clock,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Phone,
+  X,
+  Zap,
+} from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const professionalStore = useProfessionalsStore()
+const reviewsStore = useReviewsStore()
 const { currentProfessional: professional, loading } = storeToRefs(professionalStore)
+const { reviews } = storeToRefs(reviewsStore)
 
 const showGallery = ref(false)
 const currentPhotoIndex = ref(0)
+const showReviewModal = ref(false)
 
 // Computeds para organizar fotos
-const mainPhoto = computed(() => {
+const mainPhoto = computed<ProfessionalPhoto | null>(() => {
   if (!professional.value?.photos?.length) return null
   return professional.value.photos.find((p) => p.is_primary) || professional.value.photos[0]
 })
 
-const secondaryPhotos = computed(() => {
-  if (!professional.value?.photos?.length) return []
+const secondaryPhotos = computed<ProfessionalPhoto[]>(() => {
+  if (!professional.value?.photos?.length || !mainPhoto.value) return []
   return professional.value.photos.filter((p) => p.id !== mainPhoto.value?.id)
 })
 
-function contactWhatsApp() {
-  if (professional.value?.phone) {
-    // Trackear clique no WhatsApp
-    professionalStore.trackWhatsAppClick(professional.value.id)
+function getResponseTimeText(time: string | undefined): string {
+  if (!time) return 'Tempo de resposta não definido'
 
-    // Abrir WhatsApp
-    const message = `Olá ${professional.value.name}, encontrei seu perfil no Achou e gostaria de agendar uma consulta.`
-    const phone = professional.value.phone.replace(/\D/g, '')
-    const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, '_blank')
+  const times: Record<string, string> = {
+    fast: 'Resposta em até 2h',
+    medium: 'Resposta em até 24h',
+    slow: 'Resposta em até 48h',
   }
+  return times[time] || 'Tempo de resposta não definido'
+}
+
+function contactWhatsApp() {
+  if (!professional.value?.phone) return
+
+  professionalStore.trackWhatsAppClick(professional.value.id)
+  const message = `Olá ${professional.value.name}, encontrei seu perfil no Achou e gostaria de agendar uma consulta.`
+  const phone = professional.value.phone.replace(/\D/g, '')
+  const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`
+  window.open(whatsappUrl, '_blank')
 }
 
 function openGallery(index: number) {
@@ -263,11 +394,58 @@ function closeGallery() {
   showGallery.value = false
 }
 
+function nextPhoto() {
+  if (!professional.value?.photos) return
+  if (currentPhotoIndex.value < professional.value.photos.length - 1) {
+    currentPhotoIndex.value++
+  }
+}
+
+function previousPhoto() {
+  if (currentPhotoIndex.value > 0) {
+    currentPhotoIndex.value--
+  }
+}
+
+function openReviewModal() {
+  showReviewModal.value = true
+}
+
+async function handleReviewSubmit(reviewData: {
+  rating: number
+  userName: string
+  email: string
+  comment: string
+  captchaToken: string
+}) {
+  if (!professional.value) return
+
+  try {
+    await reviewsStore.createReview({
+      professional_id: professional.value.id,
+      user_name: reviewData.userName,
+      email: reviewData.email,
+      rating: reviewData.rating,
+      comment: reviewData.comment,
+      captchaToken: reviewData.captchaToken,
+    })
+
+    showReviewModal.value = false
+    alert('✅ Avaliação enviada com sucesso!')
+  } catch (err: any) {
+    const errorMsg = err?.message || 'Erro ao enviar avaliação. Tente novamente.'
+    alert('❌ ' + errorMsg)
+  }
+}
+
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
     await professionalStore.getProfessional(id)
-    // Trackear visualização
+
+    // Carregar reviews
+    await reviewsStore.getReviews(id)
+
     if (professional.value) {
       professionalStore.trackView(professional.value.id)
     }

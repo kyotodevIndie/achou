@@ -18,6 +18,8 @@ export interface Professional {
   complex_name?: string
   city: string
   neighborhood?: string // ← NOVO
+  average_rating?: number
+  review_count?: number
   state?: string
   zip_code?: string
   latitude?: number // ← NOVO

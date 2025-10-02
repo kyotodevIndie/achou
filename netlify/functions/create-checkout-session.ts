@@ -1,4 +1,4 @@
-// netlify/functions/create-checkout-session.ts
+// netlify/functions/create-checkout-session.ts - VERSÃO CORRIGIDA
 import type { Handler, HandlerContext, HandlerEvent } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
@@ -7,10 +7,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-08-27.basil',
 })
 
-// Usar chave hardcoded temporariamente (problema com env do Netlify CLI)
+// Usar service role key para operações do backend
 const supabase = createClient(
-  'https://cpmebovurkonvpqlashq.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwbWVib3Z1cmtvbnZwcWxhc2hxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM2MDE3MSwiZXhwIjoyMDcyOTM2MTcxfQ.X6jRUhCVjJHV7ihGkxkUpoAp1iPFShf_q7DoS4hH-Og',
+  process.env.VITE_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
@@ -58,6 +58,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       .single()
 
     if (planError || !plan) {
+      console.error('Plan not found:', planError)
       return {
         statusCode: 404,
         headers,
@@ -65,14 +66,25 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       }
     }
 
+    // Verificar se tem stripe_price_id
+    if (!plan.stripe_price_id) {
+      console.error('Plan missing stripe_price_id')
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Plan not configured properly' }),
+      }
+    }
+
     // Buscar dados do profissional
     const { data: professional, error: professionalError } = await supabase
       .from('professionals')
-      .select('name, email')
+      .select('name, email, user_id')
       .eq('id', professional_id)
       .single()
 
     if (professionalError || !professional) {
+      console.error('Professional not found:', professionalError)
       return {
         statusCode: 404,
         headers,
@@ -89,17 +101,38 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     if (existingCustomers.data.length > 0) {
       customer = existingCustomers.data[0]
+      console.log('Found existing customer:', customer.id)
     } else {
       customer = await stripe.customers.create({
         email: professional.email,
         name: professional.name,
         metadata: {
           professional_id: professional_id,
+          user_id: professional.user_id,
         },
       })
+      console.log('Created new customer:', customer.id)
     }
 
-    // Criar sessão de checkout
+    // Verificar se já tem assinatura ativa
+    const existingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 1,
+    })
+
+    if (existingSubscriptions.data.length > 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Customer already has an active subscription',
+          subscription_id: existingSubscriptions.data[0].id,
+        }),
+      }
+    }
+
+    // Criar sessão de checkout SEM TRIAL
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       mode: 'subscription',
@@ -111,16 +144,20 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         },
       ],
       subscription_data: {
-        trial_period_days: plan.trial_period_days,
+        // REMOVIDO: trial_period_days
         metadata: {
           professional_id: professional_id,
           plan_id: plan_id,
+          user_id: professional.user_id,
         },
       },
       success_url: `${process.env.URL || 'http://localhost:8888'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.URL || 'http://localhost:8888'}/payment/cancelled`,
       locale: 'pt-BR',
+      billing_address_collection: 'required',
     })
+
+    console.log('Checkout session created:', session.id)
 
     return {
       statusCode: 200,

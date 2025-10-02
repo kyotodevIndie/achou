@@ -1,4 +1,4 @@
-// netlify/functions/cancel-subscription.ts
+// netlify/functions/cancel-subscription.ts - VERSÃO CORRIGIDA
 import type { Handler, HandlerContext, HandlerEvent } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
@@ -70,15 +70,16 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       }
     }
 
-    // Cancelar no Stripe (no final do período) e buscar dados completos
-    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-      cancel_at_period_end: true,
-    })
-
-    // Buscar dados completos da subscription para pegar current_period_end
-    const fullSubscription = await stripe.subscriptions.retrieve(
+    // Cancelar no Stripe (no final do período)
+    const stripeSubscription = await stripe.subscriptions.update(
       subscription.stripe_subscription_id,
+      {
+        cancel_at_period_end: true,
+      },
     )
+
+    // Type assertion para acessar current_period_end
+    const sub = stripeSubscription as any
 
     // Atualizar no banco
     const { error: updateError } = await supabase
@@ -96,9 +97,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         body: JSON.stringify({ error: 'Failed to update subscription' }),
       }
     }
-
-    // Cast para any para acessar current_period_end
-    const sub = fullSubscription as any
 
     return {
       statusCode: 200,

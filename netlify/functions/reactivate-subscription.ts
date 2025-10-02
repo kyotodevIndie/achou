@@ -1,4 +1,4 @@
-// netlify/functions/reactivate-subscription.ts
+// netlify/functions/reactivate-subscription.ts - VERSÃO CORRIGIDA
 import type { Handler, HandlerContext, HandlerEvent } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
@@ -107,12 +107,15 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     }
 
     // Reativar profissional se necessário
+    const isActive =
+      stripeSubscription.status === 'active' || stripeSubscription.status === 'trialing'
+
     const { error: professionalError } = await supabase
       .from('professionals')
       .update({
         subscription_status: stripeSubscription.status,
-        is_active:
-          stripeSubscription.status === 'active' || stripeSubscription.status === 'trialing',
+        is_active: isActive,
+        is_on_trial: stripeSubscription.status === 'trialing',
       })
       .eq('id', subscription.professional_id)
 

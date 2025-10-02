@@ -1,4 +1,4 @@
-<!-- src/pages/Subscription.vue - Página de assinatura -->
+<!-- src/pages/Subscription.vue - VERSÃO CORRIGIDA -->
 <template>
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
@@ -72,7 +72,7 @@
               </div>
               <div class="flex items-center gap-3">
                 <CheckCircle class="w-5 h-5 text-green-500" />
-                <span class="text-gray-700">{{ plan.trial_period_days }} dias grátis</span>
+                <span class="text-gray-700">Cancele quando quiser</span>
               </div>
             </div>
 
@@ -87,14 +87,12 @@
                   : 'bg-gray-800 hover:bg-gray-900'
               "
             >
-              {{
-                subscribing && selectedPlan?.id === plan.id
-                  ? 'Processando...'
-                  : `Começar teste grátis`
-              }}
+              {{ subscribing && selectedPlan?.id === plan.id ? 'Processando...' : 'Assinar Agora' }}
             </Button>
 
-            <p class="text-xs text-gray-500 text-center mt-3">Cancele a qualquer momento</p>
+            <p class="text-xs text-gray-500 text-center mt-3">
+              Pagamento mensal de {{ formatPrice(plan.price_cents) }}
+            </p>
           </div>
         </div>
 
@@ -104,9 +102,10 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <h3 class="font-semibold text-gray-900 mb-2">Como funciona o período gratuito?</h3>
+              <h3 class="font-semibold text-gray-900 mb-2">Como funciona o pagamento?</h3>
               <p class="text-gray-600 text-sm">
-                Você tem 7 dias totalmente grátis. Se cancelar antes, não será cobrado nada.
+                Pagamento mensal recorrente de R$ 19,99. O primeiro pagamento é cobrado
+                imediatamente.
               </p>
             </div>
 
@@ -128,7 +127,7 @@
             <div>
               <h3 class="font-semibold text-gray-900 mb-2">Aceita quais formas de pagamento?</h3>
               <p class="text-gray-600 text-sm">
-                Cartão de crédito, débito e PIX. Pagamento seguro processado pelo Stripe.
+                Cartão de crédito e débito. Pagamento seguro processado pelo Stripe.
               </p>
             </div>
           </div>
@@ -144,7 +143,7 @@
             size="lg"
             class="bg-rose-500 hover:bg-rose-600 px-8 py-4 text-lg"
           >
-            Começar agora - 7 dias grátis
+            Assinar por R$ 19,99/mês
           </Button>
         </div>
       </div>
@@ -208,6 +207,11 @@ async function startSubscription(plan: any) {
 
   try {
     // Buscar ID do profissional
+    if (!authStore.user) {
+      console.error('Não existe authStore.user')
+      return
+    }
+
     const { data: professional } = await supabase
       .from('professionals')
       .select('id')
