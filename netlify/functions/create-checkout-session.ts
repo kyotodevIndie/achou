@@ -6,14 +6,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-08-27.basil',
 })
 
-// Usar service role key para operações do backend
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -39,8 +37,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   try {
     const { professional_id, plan_id } = JSON.parse(event.body || '{}')
 
-    console.log('Received data:', { professional_id, plan_id })
-
     if (!professional_id || !plan_id) {
       return {
         statusCode: 400,
@@ -49,43 +45,21 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       }
     }
 
-    // Buscar dados do plano
     const { data: plan, error: planError } = await supabase
       .from('subscription_plans')
       .select('*')
       .eq('id', plan_id)
       .single()
 
-    // DEBUG: Log detalhado do resultado
-    console.log('Plan query result:', {
-      plan,
-      planError,
-      planId: plan_id,
-      hasData: !!plan,
-      errorDetails: planError
-        ? {
-            message: planError.message,
-            details: planError.details,
-            hint: planError.hint,
-            code: planError.code,
-          }
-        : null,
-    })
-
     if (planError || !plan) {
       console.error('Plan not found:', planError)
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({
-          error: 'Plan not found',
-          details: planError?.message || 'No plan data returned',
-          planId: plan_id,
-        }),
+        body: JSON.stringify({ error: 'Plan not found' }),
       }
     }
 
-    // Verificar se tem stripe_price_id
     if (!plan.stripe_price_id) {
       console.error('Plan missing stripe_price_id')
       return {
@@ -95,7 +69,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       }
     }
 
-    // Buscar dados do profissional
     const { data: professional, error: professionalError } = await supabase
       .from('professionals')
       .select('name, email, user_id')
@@ -111,7 +84,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       }
     }
 
-    // Criar ou buscar customer no Stripe
     let customer
     const existingCustomers = await stripe.customers.list({
       email: professional.email,
@@ -133,7 +105,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       console.log('Created new customer:', customer.id)
     }
 
-    // Verificar se já tem assinatura ativa
     const existingSubscriptions = await stripe.subscriptions.list({
       customer: customer.id,
       status: 'active',
@@ -151,7 +122,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       }
     }
 
-    // Criar sessão de checkout SEM TRIAL
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       mode: 'subscription',
@@ -163,7 +133,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         },
       ],
       subscription_data: {
-        // REMOVIDO: trial_period_days
         metadata: {
           professional_id: professional_id,
           plan_id: plan_id,
