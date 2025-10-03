@@ -1,4 +1,3 @@
-// netlify/functions/stripe-webhook.ts - VERSÃO CORRIGIDA
 import type { Handler, HandlerContext, HandlerEvent } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
@@ -110,10 +109,12 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   }
 
   try {
-    // Type assertion para acessar propriedades do Stripe
     const sub = subscription as any
 
-    // Criar/atualizar registro da assinatura
+    const firstItem = sub.items?.data?.[0]
+    const currentPeriodStart = firstItem?.current_period_start || sub.current_period_start
+    const currentPeriodEnd = firstItem?.current_period_end || sub.current_period_end
+
     const { data: subscriptionData, error: subscriptionError } = await supabase
       .from('subscriptions')
       .upsert(
@@ -123,11 +124,11 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
           stripe_subscription_id: subscription.id,
           stripe_customer_id: subscription.customer as string,
           status: subscription.status,
-          current_period_start: sub.current_period_start
-            ? new Date(sub.current_period_start * 1000).toISOString()
+          current_period_start: currentPeriodStart
+            ? new Date(currentPeriodStart * 1000).toISOString()
             : null,
-          current_period_end: sub.current_period_end
-            ? new Date(sub.current_period_end * 1000).toISOString()
+          current_period_end: currentPeriodEnd
+            ? new Date(currentPeriodEnd * 1000).toISOString()
             : null,
           trial_start: sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : null,
           trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
@@ -147,7 +148,6 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 
     console.log('Subscription created in DB:', subscriptionData)
 
-    // Ativar profissional
     const isActive = subscription.status === 'active' || subscription.status === 'trialing'
 
     const { error: professionalError } = await supabase
@@ -156,8 +156,8 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
         subscription_status: subscription.status,
         subscription_id: subscriptionData.id,
         is_active: isActive,
-        subscription_expires_at: sub.current_period_end
-          ? new Date(sub.current_period_end * 1000).toISOString()
+        subscription_expires_at: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000).toISOString()
           : null,
         is_on_trial: subscription.status === 'trialing',
         trial_expires_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
@@ -178,19 +178,21 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   console.log('Subscription updated:', subscription.id)
 
   try {
-    // Type assertion para acessar propriedades do Stripe
     const sub = subscription as any
 
-    // Atualizar registro da assinatura
+    const firstItem = sub.items?.data?.[0]
+    const currentPeriodStart = firstItem?.current_period_start || sub.current_period_start
+    const currentPeriodEnd = firstItem?.current_period_end || sub.current_period_end
+
     const { error: subscriptionError } = await supabase
       .from('subscriptions')
       .update({
         status: subscription.status,
-        current_period_start: sub.current_period_start
-          ? new Date(sub.current_period_start * 1000).toISOString()
+        current_period_start: currentPeriodStart
+          ? new Date(currentPeriodStart * 1000).toISOString()
           : null,
-        current_period_end: sub.current_period_end
-          ? new Date(sub.current_period_end * 1000).toISOString()
+        current_period_end: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000).toISOString()
           : null,
         trial_start: sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : null,
         trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
@@ -204,7 +206,6 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       return
     }
 
-    // Buscar professional_id
     const { data: subscriptionData } = await supabase
       .from('subscriptions')
       .select('professional_id, id')
@@ -220,8 +221,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
           subscription_status: subscription.status,
           subscription_id: subscriptionData.id,
           is_active: isActive,
-          subscription_expires_at: sub.current_period_end
-            ? new Date(sub.current_period_end * 1000).toISOString()
+          subscription_expires_at: currentPeriodEnd
+            ? new Date(currentPeriodEnd * 1000).toISOString()
             : null,
           is_on_trial: subscription.status === 'trialing',
           trial_expires_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
@@ -248,7 +249,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   console.log('Subscription deleted:', subscription.id)
 
   try {
-    // Atualizar registro da assinatura
     const { error: subscriptionError } = await supabase
       .from('subscriptions')
       .update({
@@ -262,7 +262,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       return
     }
 
-    // Desativar profissional
     const { data: subscriptionData } = await supabase
       .from('subscriptions')
       .select('professional_id')
@@ -294,7 +293,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   console.log('Payment succeeded:', invoice.id)
 
-  // Type assertion para acessar propriedades que existem em runtime
   const inv = invoice as any
   const subscriptionId = inv.subscription as string | undefined
 
@@ -306,7 +304,6 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
       .single()
 
     if (subscriptionData) {
-      // Registrar transação
       const { error } = await supabase.from('payment_transactions').insert({
         subscription_id: subscriptionData.id,
         professional_id: subscriptionData.professional_id,
@@ -329,7 +326,6 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   console.log('Payment failed:', invoice.id)
 
-  // Type assertion para acessar propriedades que existem em runtime
   const inv = invoice as any
   const subscriptionId = inv.subscription as string | undefined
 
@@ -341,7 +337,6 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
       .single()
 
     if (subscriptionData) {
-      // Registrar transação falhada
       const { error } = await supabase.from('payment_transactions').insert({
         subscription_id: subscriptionData.id,
         professional_id: subscriptionData.professional_id,
