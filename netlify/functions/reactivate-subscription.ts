@@ -50,7 +50,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     // Buscar assinatura no banco
     const { data: subscription, error: dbError } = await supabase
       .from('subscriptions')
-      .select('stripe_subscription_id, professional_id, status')
+      .select('stripe_subscription_id, professional_id, status, cancel_at_period_end')
       .eq('id', subscription_id)
       .single()
 
@@ -70,12 +70,14 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       }
     }
 
-    // Verificar se pode ser reativada
-    if (subscription.status === 'active') {
+    // Verificar se realmente precisa reativar
+    if (subscription.status === 'active' && !subscription.cancel_at_period_end) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Subscription is already active' }),
+        body: JSON.stringify({
+          error: 'Subscription is already active and not scheduled for cancellation',
+        }),
       }
     }
 
