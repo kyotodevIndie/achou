@@ -147,9 +147,14 @@
             </Button>
 
             <!-- Atualizar método de pagamento -->
-            <Button variant="outline" v-if="!currentSubscription.cancel_at_period_end">
+            <Button
+              variant="outline"
+              v-if="!currentSubscription.cancel_at_period_end"
+              @click="handleUpdatePaymentMethod"
+              :disabled="updatingPayment"
+            >
               <CreditCard class="w-4 h-4 mr-2" />
-              Atualizar cartão
+              {{ updatingPayment ? 'Redirecionando...' : 'Atualizar cartão' }}
             </Button>
           </div>
         </div>
@@ -266,6 +271,19 @@ const showCancelModal = ref(false)
 const canceling = ref(false)
 const reactivating = ref(false)
 const professionalId = ref<string | null>(null)
+const updatingPayment = ref(false)
+
+async function handleUpdatePaymentMethod() {
+  if (!currentSubscription.value) return
+
+  updatingPayment.value = true
+  try {
+    await subscriptionStore.createPortalSession(currentSubscription.value.id)
+  } catch (err) {
+    alert('Erro ao abrir portal de pagamento')
+    updatingPayment.value = false
+  }
+}
 
 // Computed para status mais claro
 const getStatusLabel = () => {

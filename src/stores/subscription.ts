@@ -290,6 +290,42 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     }
   }
 
+  async function createPortalSession(subscriptionId: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+
+      const response = await fetch('/.netlify/functions/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          subscription_id: subscriptionId,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao criar sessão do portal')
+      }
+
+      const { url } = await response.json()
+
+      // Redirecionar para o Customer Portal do Stripe
+      window.location.href = url
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao abrir portal de pagamento'
+      console.error('Erro ao criar portal session:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // State
     plans,
@@ -314,5 +350,6 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     reactivateSubscription,
     formatPrice,
     getStatusText,
+    createPortalSession,
   }
 })
