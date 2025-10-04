@@ -58,7 +58,7 @@ export const useProfessionalsStore = defineStore('professionals', () => {
           )
         `,
         )
-        .eq('is_active', true)
+        .eq('is_active', true) // ✅ APENAS PROFISSIONAIS ATIVOS
 
       // Filtro de texto em múltiplos campos
       if (params.query) {
@@ -235,6 +235,7 @@ export const useProfessionalsStore = defineStore('professionals', () => {
       acceptsUrgent: false,
       verified: false,
       sortBy: 'relevance',
+      userLocation: userLocation.value || undefined,
     }
 
     return searchProfessionalsAdvanced(advancedParams)
@@ -259,7 +260,7 @@ export const useProfessionalsStore = defineStore('professionals', () => {
         `,
         )
         .eq('id', id)
-        .eq('is_active', true)
+        .eq('is_active', true) // ✅ APENAS PROFISSIONAIS ATIVOS
         .single()
 
       if (apiError) throw new Error(apiError.message)
@@ -296,7 +297,7 @@ export const useProfessionalsStore = defineStore('professionals', () => {
       const { data, error } = await supabase
         .from('professionals')
         .select('category, city, neighborhood, verified, response_time')
-        .eq('is_active', true)
+        .eq('is_active', true) // ✅ APENAS PROFISSIONAIS ATIVOS
 
       if (error) throw error
 
@@ -345,7 +346,7 @@ export const useProfessionalsStore = defineStore('professionals', () => {
 
   async function trackView(professionalId: string) {
     try {
-      const { error } = await supabase.from('profile_views').insert({
+      await supabase.from('profile_views').insert({
         professional_id: professionalId,
         viewer_ip: '127.0.0.1', // Em produção, pegar IP real
       })
@@ -356,9 +357,7 @@ export const useProfessionalsStore = defineStore('professionals', () => {
 
   async function trackWhatsAppClick(professionalId: string) {
     try {
-      const { error } = await supabase
-        .from('whatsapp_clicks')
-        .insert({ professional_id: professionalId })
+      await supabase.from('whatsapp_clicks').insert({ professional_id: professionalId })
     } catch (err) {
       console.error('Erro ao trackear clique WhatsApp:', err)
     }
