@@ -1,4 +1,4 @@
-<!-- src/pages/dashboard/SubscriptionSettings.vue -->
+<!-- src/pages/dashboard/SubscriptionSettings.vue - UI MELHORADA -->
 <template>
   <div class="container mx-auto p-4">
     <div class="mb-6">
@@ -16,23 +16,9 @@
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-semibold">Status da Assinatura</h2>
           <div v-if="currentSubscription" class="flex items-center gap-2">
-            <div
-              class="w-3 h-3 rounded-full"
-              :class="{
-                'bg-green-500': isSubscribed,
-                'bg-yellow-500': isOnTrial,
-                'bg-red-500': !isSubscribed && !isOnTrial,
-              }"
-            ></div>
-            <span
-              class="text-sm font-medium"
-              :class="{
-                'text-green-700': isSubscribed,
-                'text-yellow-700': isOnTrial,
-                'text-red-700': !isSubscribed && !isOnTrial,
-              }"
-            >
-              {{ subscriptionStore.getStatusText(currentSubscription.status) }}
+            <div class="w-3 h-3 rounded-full" :class="getStatusColor()"></div>
+            <span class="text-sm font-medium" :class="getStatusTextColor()">
+              {{ getStatusLabel() }}
             </span>
           </div>
         </div>
@@ -56,6 +42,43 @@
 
         <!-- Com assinatura -->
         <div v-else class="space-y-6">
+          <!-- AVISO DE CANCELAMENTO -->
+          <div
+            v-if="currentSubscription.cancel_at_period_end"
+            class="bg-red-50 border-2 border-red-200 rounded-xl p-5"
+          >
+            <div class="flex items-start gap-4">
+              <div
+                class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"
+              >
+                <AlertCircle class="w-6 h-6 text-red-600" />
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-red-900 mb-2">Assinatura Cancelada</h3>
+                <p class="text-red-800 mb-3">
+                  Sua assinatura foi cancelada e não será renovada. Você ainda tem acesso até o
+                  final do período pago.
+                </p>
+                <div class="bg-white/50 rounded-lg p-3 mb-3">
+                  <p class="text-sm text-red-900 font-medium mb-1">
+                    ⏰ Acesso até: {{ formatDate(currentSubscription.current_period_end) }}
+                  </p>
+                  <p class="text-sm text-red-700">
+                    Após esta data, seu perfil sairá das buscas automaticamente.
+                  </p>
+                </div>
+                <Button
+                  @click="handleReactivate"
+                  :disabled="reactivating"
+                  class="bg-green-600 hover:bg-green-700"
+                >
+                  <RotateCcw class="w-4 h-4 mr-2" />
+                  {{ reactivating ? 'Reativando...' : 'Reativar assinatura' }}
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <!-- Card do plano atual -->
           <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div>
@@ -64,27 +87,23 @@
               </h4>
               <p class="text-sm text-gray-600">
                 {{
-                  subscriptionStore.formatPrice(currentSubscription.plan?.price_cents || 999)
+                  subscriptionStore.formatPrice(currentSubscription.plan?.price_cents || 1999)
                 }}/mês
               </p>
             </div>
             <div class="text-right">
               <div class="text-sm text-gray-600">Status</div>
-              <div
-                class="font-medium"
-                :class="{
-                  'text-green-600': isSubscribed,
-                  'text-yellow-600': isOnTrial,
-                  'text-red-600': !isSubscribed && !isOnTrial,
-                }"
-              >
-                {{ subscriptionStore.getStatusText(currentSubscription.status) }}
+              <div class="font-medium" :class="getStatusTextColor()">
+                {{ getStatusLabel() }}
               </div>
             </div>
           </div>
 
-          <!-- Informações do período -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Informações do período - APENAS SE NÃO ESTIVER CANCELADA -->
+          <div
+            v-if="!currentSubscription.cancel_at_period_end"
+            class="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
             <!-- Período de teste -->
             <div v-if="isOnTrial" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div class="flex items-center gap-3 mb-2">
@@ -100,29 +119,17 @@
             </div>
 
             <!-- Próximo pagamento -->
-            <div
-              v-else-if="isSubscribed"
-              class="bg-green-50 border border-green-200 rounded-lg p-4"
-            >
+            <div v-else class="bg-green-50 border border-green-200 rounded-lg p-4">
               <div class="flex items-center gap-3 mb-2">
                 <Calendar class="w-5 h-5 text-green-600" />
                 <h4 class="font-medium text-green-800">Próximo Pagamento</h4>
               </div>
               <p class="text-sm text-green-700 mb-1">
-                {{ subscriptionStore.formatPrice(currentSubscription.plan?.price_cents || 999) }}
+                {{ subscriptionStore.formatPrice(currentSubscription.plan?.price_cents || 1999) }}
               </p>
               <div class="text-xs text-green-600">
                 Em: {{ formatDate(currentSubscription.current_period_end) }}
               </div>
-            </div>
-
-            <!-- Assinatura cancelada -->
-            <div v-else class="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div class="flex items-center gap-3 mb-2">
-                <AlertCircle class="w-5 h-5 text-red-600" />
-                <h4 class="font-medium text-red-800">Assinatura Cancelada</h4>
-              </div>
-              <p class="text-sm text-red-700">Seu perfil não aparece mais nas buscas</p>
             </div>
           </div>
 
@@ -139,19 +146,8 @@
               Cancelar assinatura
             </Button>
 
-            <!-- Reativar assinatura -->
-            <Button
-              v-if="currentSubscription.cancel_at_period_end"
-              @click="handleReactivate"
-              :disabled="reactivating"
-              class="bg-green-600 hover:bg-green-700"
-            >
-              <RotateCcw class="w-4 h-4 mr-2" />
-              {{ reactivating ? 'Reativando...' : 'Reativar assinatura' }}
-            </Button>
-
             <!-- Atualizar método de pagamento -->
-            <Button variant="outline">
+            <Button variant="outline" v-if="!currentSubscription.cancel_at_period_end">
               <CreditCard class="w-4 h-4 mr-2" />
               Atualizar cartão
             </Button>
@@ -222,9 +218,14 @@
         <div class="text-center mb-6">
           <div class="text-red-500 text-4xl mb-4">⚠️</div>
           <h3 class="text-lg font-semibold mb-2">Cancelar assinatura?</h3>
+          <p class="text-gray-600 text-sm mb-4">
+            Seu perfil continuará ativo até
+            <strong>{{ formatDate(currentSubscription?.current_period_end) }}</strong
+            >.
+          </p>
           <p class="text-gray-600 text-sm">
-            Seu perfil sairá das buscas no final do período atual. Você pode reativar a qualquer
-            momento.
+            Após esta data, seu perfil sairá das buscas automaticamente. Você pode reativar a
+            qualquer momento antes disso.
           </p>
         </div>
 
@@ -263,6 +264,41 @@ const reactivating = ref(false)
 // Mock professional ID - em produção, pegar do auth store
 const professionalId = 'professional-id'
 
+// Computed para status mais claro
+const getStatusLabel = () => {
+  if (!currentSubscription.value) return 'Inativa'
+
+  if (currentSubscription.value.cancel_at_period_end) {
+    return 'Cancelada (ativa até o fim do período)'
+  }
+
+  return subscriptionStore.getStatusText(currentSubscription.value.status)
+}
+
+const getStatusColor = () => {
+  if (!currentSubscription.value) return 'bg-gray-500'
+
+  if (currentSubscription.value.cancel_at_period_end) {
+    return 'bg-red-500'
+  }
+
+  if (isSubscribed.value) return 'bg-green-500'
+  if (isOnTrial.value) return 'bg-yellow-500'
+  return 'bg-red-500'
+}
+
+const getStatusTextColor = () => {
+  if (!currentSubscription.value) return 'text-gray-700'
+
+  if (currentSubscription.value.cancel_at_period_end) {
+    return 'text-red-700'
+  }
+
+  if (isSubscribed.value) return 'text-green-700'
+  if (isOnTrial.value) return 'text-yellow-700'
+  return 'text-red-700'
+}
+
 async function handleCancel() {
   if (!currentSubscription.value) return
 
@@ -292,7 +328,11 @@ async function handleReactivate() {
 
 function formatDate(dateString?: string) {
   if (!dateString) return '-'
-  return new Date(dateString).toLocaleDateString('pt-BR')
+  return new Date(dateString).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 function getTransactionStatus(status: string) {

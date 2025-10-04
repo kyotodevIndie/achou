@@ -1,4 +1,4 @@
-<!-- src/pages/dashboard/Dashboard.vue - VERSÃO CORRIGIDA -->
+<!-- src/pages/dashboard/Dashboard.vue - VERSÃO COMPLETA CORRIGIDA -->
 <template>
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto p-4">
@@ -234,37 +234,63 @@
             </div>
 
             <div v-else-if="subscription" class="space-y-4">
+              <!-- AVISO DE CANCELAMENTO -->
+              <div
+                v-if="subscription.cancel_at_period_end"
+                class="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4"
+              >
+                <div class="flex items-start gap-3">
+                  <AlertCircle class="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 class="font-semibold text-red-900 mb-1">Assinatura Cancelada</h4>
+                    <p class="text-sm text-red-800 mb-2">
+                      Seu plano foi cancelado e não será renovado.
+                    </p>
+                    <p class="text-xs text-red-700">
+                      Acesso até: <strong>{{ formatDate(subscription.current_period_end) }}</strong>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div class="flex items-center justify-between">
                 <div>
                   <p class="font-medium text-gray-900">
                     {{ subscription.plan?.name || 'Plano Profissional' }}
                   </p>
                   <p class="text-sm text-gray-600">
-                    {{ formatPrice(subscription.plan?.price_cents || 999) }}/mês
+                    {{ formatPrice(subscription.plan?.price_cents || 1999) }}/mês
                   </p>
                 </div>
                 <span
                   class="text-sm font-medium px-3 py-1 rounded-full"
-                  :class="getSubscriptionStatusClass(subscription.status)"
+                  :class="getSubscriptionBadgeClass(subscription)"
                 >
-                  {{ getSubscriptionStatusText(subscription.status) }}
+                  {{ getSubscriptionBadgeText(subscription) }}
                 </span>
               </div>
 
               <div class="border-t pt-4">
                 <div
-                  v-if="subscription.status === 'trialing'"
+                  v-if="subscription.status === 'trialing' && !subscription.cancel_at_period_end"
                   class="flex items-center gap-2 text-sm text-yellow-600 mb-2"
                 >
                   <Gift class="w-4 h-4" />
                   <span>Período de teste: {{ trialDaysLeft }} dias restantes</span>
                 </div>
                 <div
-                  v-else-if="subscription.status === 'active'"
+                  v-else-if="subscription.status === 'active' && !subscription.cancel_at_period_end"
                   class="flex items-center gap-2 text-sm text-gray-600 mb-2"
                 >
                   <Calendar class="w-4 h-4" />
                   <span>Próxima cobrança: {{ formatDate(subscription.current_period_end) }}</span>
+                </div>
+                <div
+                  v-if="subscription.cancel_at_period_end"
+                  class="flex items-center gap-2 text-sm text-red-600 mb-2"
+                >
+                  <Calendar class="w-4 h-4" />
+                  <span>Acesso até: {{ formatDate(subscription.current_period_end) }}</span>
                 </div>
                 <div class="flex items-center gap-2 text-sm text-gray-600">
                   <CreditCard class="w-4 h-4" />
@@ -333,7 +359,6 @@
             </div>
           </div>
 
-          <!-- Placeholder para gráfico -->
           <div
             class="h-64 bg-gray-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200"
           >
@@ -366,6 +391,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useSubscriptionStore } from '@/stores/subscription'
 import type { Professional, ProfessionalPhoto } from '@/types'
 import {
+  AlertCircle,
   AlertTriangle,
   BarChart3,
   Calendar,
@@ -444,6 +470,36 @@ const daysSinceCreated = computed(() => {
   return Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
 })
 
+// Funções auxiliares para assinatura
+function getSubscriptionBadgeClass(sub: any) {
+  if (sub.cancel_at_period_end) {
+    return 'bg-red-100 text-red-800'
+  }
+
+  const classes: Record<string, string> = {
+    active: 'bg-green-100 text-green-800',
+    trialing: 'bg-yellow-100 text-yellow-800',
+    past_due: 'bg-red-100 text-red-800',
+    canceled: 'bg-gray-100 text-gray-800',
+    incomplete: 'bg-orange-100 text-orange-800',
+    unpaid: 'bg-red-100 text-red-800',
+  }
+
+  return classes[sub.status] || 'bg-gray-100 text-gray-800'
+}
+
+function getSubscriptionBadgeText(sub: any) {
+  if (sub.cancel_at_period_end) {
+    return 'Cancelada'
+  }
+
+  return getSubscriptionStatusText(sub.status)
+}
+
+function getSubscriptionStatusText(status: string) {
+  return subscriptionStore.getStatusText(status)
+}
+
 // Carregar dados do profissional
 async function loadProfessionalData() {
   if (!authStore.user?.id) {
@@ -454,18 +510,16 @@ async function loadProfessionalData() {
   loadingProfile.value = true
 
   try {
-    // Carregar dados do profissional usando user_id
     const { data: professionalData, error: profError } = await supabase
       .from('professionals')
       .select('*')
       .eq('user_id', authStore.user.id)
-      .maybeSingle() // Use maybeSingle() ao invés de single()
+      .maybeSingle()
 
     if (profError) {
       throw profError
     }
 
-    // Se não encontrou profissional, mas usuário está logado, mostrar estado vazio
     if (!professionalData) {
       professional.value = null
       console.log('Nenhum profissional encontrado para este usuário')
@@ -474,7 +528,6 @@ async function loadProfessionalData() {
 
     professional.value = professionalData
 
-    // Se encontrou o profissional, carregar analytics e fotos
     await Promise.all([
       loadAnalytics(professionalData.id),
       loadPhotos(professionalData.id),
@@ -487,18 +540,14 @@ async function loadProfessionalData() {
   }
 }
 
-// Carregar analytics reais
 async function loadAnalytics(professionalId: string) {
   try {
-    // Período atual (últimos 30 dias)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    // Período anterior (30-60 dias atrás)
     const sixtyDaysAgo = new Date()
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
-    // Views atuais (últimos 30 dias)
     const { data: currentViews, error: viewsError } = await supabase
       .from('profile_views')
       .select('id')
@@ -507,7 +556,6 @@ async function loadAnalytics(professionalId: string) {
 
     if (viewsError) throw viewsError
 
-    // Views anteriores (30-60 dias atrás)
     const { data: previousViews } = await supabase
       .from('profile_views')
       .select('id')
@@ -515,7 +563,6 @@ async function loadAnalytics(professionalId: string) {
       .gte('viewed_at', sixtyDaysAgo.toISOString())
       .lt('viewed_at', thirtyDaysAgo.toISOString())
 
-    // Clicks atuais (últimos 30 dias)
     const { data: currentClicks, error: clicksError } = await supabase
       .from('whatsapp_clicks')
       .select('id')
@@ -524,7 +571,6 @@ async function loadAnalytics(professionalId: string) {
 
     if (clicksError) throw clicksError
 
-    // Clicks anteriores (30-60 dias atrás)
     const { data: previousClicks } = await supabase
       .from('whatsapp_clicks')
       .select('id')
@@ -540,7 +586,6 @@ async function loadAnalytics(professionalId: string) {
     }
   } catch (err) {
     console.error('Erro ao carregar analytics:', err)
-    // Manter valores zerados se houver erro
     analytics.value = {
       views: 0,
       clicks: 0,
@@ -550,7 +595,6 @@ async function loadAnalytics(professionalId: string) {
   }
 }
 
-// Carregar fotos
 async function loadPhotos(professionalId: string) {
   try {
     const { data, error } = await supabase
@@ -568,7 +612,6 @@ async function loadPhotos(professionalId: string) {
   }
 }
 
-// Carregar assinatura
 async function loadSubscription(professionalId: string) {
   loadingSubscription.value = true
   try {
@@ -581,30 +624,17 @@ async function loadSubscription(professionalId: string) {
   }
 }
 
-// Helpers para assinatura
 function formatPrice(priceCents: number) {
   return subscriptionStore.formatPrice(priceCents)
 }
 
 function formatDate(dateString?: string) {
   if (!dateString) return '-'
-  return new Date(dateString).toLocaleDateString('pt-BR')
-}
-
-function getSubscriptionStatusText(status: string) {
-  return subscriptionStore.getStatusText(status)
-}
-
-function getSubscriptionStatusClass(status: string) {
-  const classes = {
-    active: 'bg-green-100 text-green-800',
-    trialing: 'bg-yellow-100 text-yellow-800',
-    past_due: 'bg-red-100 text-red-800',
-    canceled: 'bg-gray-100 text-gray-800',
-    incomplete: 'bg-orange-100 text-orange-800',
-    unpaid: 'bg-red-100 text-red-800',
-  }
-  return classes[status as keyof typeof classes] || 'bg-gray-100 text-gray-800'
+  return new Date(dateString).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 onMounted(() => {
