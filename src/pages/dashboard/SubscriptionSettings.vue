@@ -248,11 +248,16 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
+import { supabase } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 import { useSubscriptionStore } from '@/stores/subscription'
 import { AlertCircle, Calendar, CreditCard, Gift, RotateCcw, X } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+const authStore = useAuthStore()
 const subscriptionStore = useSubscriptionStore()
 const { currentSubscription, transactions, loading, isSubscribed, isOnTrial, trialDaysLeft } =
   storeToRefs(subscriptionStore)
@@ -260,9 +265,7 @@ const { currentSubscription, transactions, loading, isSubscribed, isOnTrial, tri
 const showCancelModal = ref(false)
 const canceling = ref(false)
 const reactivating = ref(false)
-
-// Mock professional ID - em produção, pegar do auth store
-const professionalId = 'professional-id'
+const professionalId = ref<string | null>(null)
 
 // Computed para status mais claro
 const getStatusLabel = () => {
@@ -346,9 +349,34 @@ function getTransactionStatus(status: string) {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    subscriptionStore.loadCurrentSubscription(professionalId),
-    subscriptionStore.loadTransactions(professionalId),
-  ])
+  // Buscar ID do profissional pelo user_id
+  if (!authStore.user?.id) {
+    router.push('/login')
+    return
+  }
+
+  try {
+    const { data: professional, error } = await supabase
+      .from('professionals')
+      .select('id')
+      .eq('user_id', authStore.user.id)
+      .single()
+
+    if (error || !professional) {
+      console.error('Profissional não encontrado:', error)
+      router.push('/dashboard/perfil?first=true')
+      return
+    }
+
+    professionalId.value = professional.id
+
+    // Carregar dados da assinatura
+    await Promise.all([
+      subscriptionStore.loadCurrentSubscription(professional.id),
+      subscriptionStore.loadTransactions(professional.id),
+    ])
+  } catch (err) {
+    console.error('Erro ao carregar dados:', err)
+  }
 })
 </script>
