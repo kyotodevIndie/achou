@@ -1,242 +1,158 @@
-<!-- src/pages/Search.vue - Versão simplificada -->
 <template>
-  <div class="container mx-auto p-4">
-    <!-- Header de Busca Simples -->
-    <div
-      class="bg-white dark:bg-gray-900 sticky top-16 z-40 py-4 border-b border-gray-200 dark:border-gray-700 mb-6"
-    >
-      <div class="flex gap-4 flex-wrap items-center">
-        <Input
-          v-model="searchQuery"
-          placeholder="Buscar por nome, categoria, complexo..."
-          class="flex-1 min-w-64 theme-input"
-          @input="debouncedSearch"
-        />
+  <div class="min-h-screen bg-gray-50">
+    <div class="container mx-auto p-4 max-w-7xl">
+      <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6 sticky top-20 z-30 shadow-sm">
+        <div class="flex gap-3 items-center">
+          <div class="flex-1">
+            <Input
+              v-model="searchQuery"
+              placeholder="Buscar por nome, profissão, complexo, endereço..."
+              class="text-base"
+              @input="debouncedSearch"
+            >
+              <template #prefix>
+                <Search class="w-5 h-5 text-gray-400" />
+              </template>
+            </Input>
+          </div>
 
-        <Select v-model="selectedCategory" @update:model-value="handleSearch">
-          <SelectTrigger class="w-52 theme-input">
-            <SelectValue placeholder="Categoria" />
-          </SelectTrigger>
-          <SelectContent class="theme-card">
-            <SelectItem value="all">Todas as categorias</SelectItem>
-            <SelectItem value="dentista">🦷 Dentista</SelectItem>
-            <SelectItem value="medico">👨‍⚕️ Médico</SelectItem>
-            <SelectItem value="psicologo">🧠 Psicólogo</SelectItem>
-            <SelectItem value="nutricionista">🥗 Nutricionista</SelectItem>
-            <SelectItem value="advogado">⚖️ Advogado</SelectItem>
-            <SelectItem value="contador">💼 Contador</SelectItem>
-            <SelectItem value="arquiteto">🏗️ Arquiteto</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select v-model="sortBy" @update:model-value="handleSearch">
+            <SelectTrigger class="w-48">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="relevance">Relevância</SelectItem>
+              <SelectItem value="rating">Melhor Avaliados</SelectItem>
+              <SelectItem value="newest">Mais Recentes</SelectItem>
+              <SelectItem value="price_asc">Menor Preço</SelectItem>
+              <SelectItem value="price_desc">Maior Preço</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select v-model="selectedCity" @update:model-value="handleSearch">
-          <SelectTrigger class="w-48 theme-input">
-            <SelectValue placeholder="Cidade" />
-          </SelectTrigger>
-          <SelectContent class="theme-card">
-            <SelectItem value="all">Todas as cidades</SelectItem>
-            <SelectItem value="Fortaleza">Fortaleza</SelectItem>
-            <SelectItem value="Caucaia">Caucaia</SelectItem>
-            <SelectItem value="Maracanaú">Maracanaú</SelectItem>
-          </SelectContent>
-        </Select>
+          <Button
+            @click="requestLocation"
+            :disabled="gettingLocation"
+            variant="outline"
+            class="shrink-0"
+          >
+            <MapPin class="w-4 h-4 mr-2" />
+            <span v-if="gettingLocation">Localizando...</span>
+            <span v-else-if="userLocation">Próximos ({{ nearbyCount }})</span>
+            <span v-else>Localização</span>
+          </Button>
 
-        <!-- Botão de geolocalização -->
-        <Button
-          @click="requestLocation"
-          :disabled="gettingLocation"
-          class="shrink-0 theme-button-outline"
-        >
-          <MapPin class="w-4 h-4 mr-2" />
-          <span v-if="gettingLocation">Localizando...</span>
-          <span v-else-if="userLocation">Próximos ({{ nearbyCount }})</span>
-          <span v-else>Usar localização</span>
-        </Button>
-
-        <Button v-if="hasActiveFilters" @click="clearFilters" class="theme-button-outline">
-          Limpar Filtros
-        </Button>
-      </div>
-
-      <!-- Dica de busca -->
-      <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-        💡 Dica: Você pode buscar por nome do profissional, categoria, complexo/edifício ou endereço
-      </div>
-    </div>
-
-    <!-- Header dos Resultados -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-4">
-        <p class="text-gray-600">
-          {{ professionals.length }} profissionais encontrados
-          <span v-if="searchQuery">para "{{ searchQuery }}"</span>
-        </p>
+          <Button v-if="hasActiveFilters" @click="clearFilters" variant="ghost" size="sm">
+            <X class="w-4 h-4 mr-1" />
+            Limpar
+          </Button>
+        </div>
 
         <div
           v-if="userLocation"
-          class="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full flex items-center gap-2"
+          class="mt-3 inline-flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full"
         >
           <MapPin class="w-4 h-4" />
-          Usando sua localização
+          Mostrando profissionais próximos a você
         </div>
       </div>
 
-      <!-- Toggle View -->
-      <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-        <Button
-          @click="viewMode = 'grid'"
-          :variant="viewMode === 'grid' ? 'default' : 'ghost'"
-          size="sm"
-          class="px-3"
-        >
-          <Grid3X3 class="w-4 h-4" />
-        </Button>
-        <Button
-          @click="viewMode = 'list'"
-          :variant="viewMode === 'list' ? 'default' : 'ghost'"
-          size="sm"
-          class="px-3"
-        >
-          <List class="w-4 h-4" />
-        </Button>
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+          <h2 class="text-xl font-semibold text-gray-900">
+            {{ loading ? 'Buscando...' : `${professionals.length} profissionais` }}
+          </h2>
+          <span v-if="searchQuery" class="text-gray-500"> · "{{ searchQuery }}" </span>
+          <span v-if="sortBy !== 'relevance'" class="text-gray-500">
+            · {{ getSortLabel(sortBy) }}
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <Button
+            @click="showMap = !showMap"
+            variant="outline"
+            size="sm"
+            class="flex items-center gap-2"
+          >
+            <Map class="w-4 h-4" />
+            {{ showMap ? 'Esconder' : 'Ver' }} mapa
+          </Button>
+
+          <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+            <Button
+              @click="viewMode = 'grid'"
+              :variant="viewMode === 'grid' ? 'default' : 'ghost'"
+              size="sm"
+              class="px-2"
+              :class="{ 'bg-rose-600': viewMode === 'grid' }"
+            >
+              <Grid3X3 class="w-4 h-4" />
+            </Button>
+            <Button
+              @click="viewMode = 'list'"
+              :variant="viewMode === 'list' ? 'default' : 'ghost'"
+              size="sm"
+              class="px-2"
+              :class="{ 'bg-rose-600': viewMode === 'list' }"
+            >
+              <List class="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="text-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto mb-4"></div>
-      <p class="text-gray-600">Buscando profissionais...</p>
-    </div>
-
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-semibold">{{ professionals.length }} profissionais encontrados</h2>
-
-      <Button @click="showMap = !showMap" variant="outline" class="flex items-center gap-2">
-        <MapPin class="w-4 h-4" />
-        {{ showMap ? 'Ocultar' : 'Ver no' }} mapa
-      </Button>
-    </div>
-
-    <!-- Mapa (quando showMap = true) -->
-    <div v-if="showMap" class="mb-6 h-[400px] rounded-lg overflow-hidden border border-gray-200">
-      <ProfessionalsMap
-        :professionals="professionals"
-        :selectedId="null"
-        @selectProfessional="handleSelectFromMap"
-      />
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="professionals.length === 0" class="text-center py-16">
-      <div class="text-gray-400 text-6xl mb-4">🔍</div>
-      <h3 class="text-xl font-bold text-gray-700 mb-2">Nenhum profissional encontrado</h3>
-      <p class="text-gray-500 mb-6">Tente ajustar seus filtros ou buscar por outro termo</p>
-      <Button @click="clearFilters" class="bg-rose-500 hover:bg-rose-600">
-        Ver todos os profissionais
-      </Button>
-    </div>
-
-    <!-- Grid View -->
-    <div
-      v-else-if="viewMode === 'grid'"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-    >
-      <ProfessionalCard
-        v-for="professional in professionals"
-        :key="professional.id"
-        :professional="professional"
-        @view-profile="goToProfile"
-      />
-    </div>
-
-    <!-- List View -->
-    <div v-else class="space-y-4">
       <div
-        v-for="professional in professionals"
-        :key="professional.id"
-        class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
-        @click="goToProfile(professional.id)"
+        v-if="showMap && professionals.length > 0"
+        class="mb-6 h-[500px] rounded-xl overflow-hidden border border-gray-200 shadow-sm"
       >
-        <div class="flex gap-6">
-          <!-- Foto -->
-          <div class="flex-shrink-0">
-            <img
-              v-if="getPrimaryPhoto(professional)"
-              :src="getPrimaryPhoto(professional)!.photo_url"
-              :alt="`Sala de ${professional.name}`"
-              class="w-32 h-24 object-cover rounded-lg"
-            />
-            <div v-else class="w-32 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Camera class="w-8 h-8 text-gray-400" />
-            </div>
-          </div>
+        <ProfessionalsMap
+          :professionals="professionals"
+          :selectedId="null"
+          @selectProfessional="goToProfile"
+        />
+      </div>
 
-          <!-- Conteúdo -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-start justify-between mb-3">
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-2">
-                  <span
-                    class="bg-rose-100 text-rose-800 text-sm font-medium px-2 py-1 rounded-full"
-                  >
-                    {{ professional.category }}
-                  </span>
-                  <div
-                    v-if="professional.verified"
-                    class="flex items-center gap-1 text-xs text-green-600"
-                  >
-                    <CheckCircle class="w-3 h-3" />
-                    <span>Verificado</span>
-                  </div>
-                </div>
+      <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mb-4"></div>
+        <p class="text-gray-600">Buscando profissionais...</p>
+      </div>
 
-                <h3 class="text-xl font-bold text-gray-900 mb-1">{{ professional.name }}</h3>
-
-                <!-- Local com complexo e distância -->
-                <div class="text-gray-600 text-sm mb-2 space-y-1">
-                  <div v-if="professional.complex_name" class="flex items-center gap-2">
-                    <Building2 class="w-4 h-4" />
-                    <span class="font-medium">{{ professional.complex_name }}</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <MapPin class="w-4 h-4" />
-                    <span>
-                      {{ professional.neighborhood ? `${professional.neighborhood}, ` : ''
-                      }}{{ professional.city }}, CE
-                    </span>
-
-                    <!-- Distância -->
-                    <span v-if="professional.distance" class="text-blue-600 font-medium ml-2">
-                      • {{ formatDistance(professional.distance) }}
-                    </span>
-                  </div>
-                </div>
-
-                <p v-if="professional.description" class="text-gray-600 text-sm line-clamp-2 mb-3">
-                  {{ professional.description }}
-                </p>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <div class="flex items-baseline gap-1">
-                <span class="text-lg font-bold text-gray-900"
-                  >R$ {{ professional.price_range }}</span
-                >
-                <span class="text-gray-500 text-sm">por consulta</span>
-              </div>
-
-              <Button
-                @click.stop="contactWhatsApp(professional)"
-                class="bg-green-600 hover:bg-green-700"
-                size="sm"
-              >
-                <MessageCircle class="w-4 h-4 mr-2" />
-                WhatsApp
-              </Button>
-            </div>
-          </div>
+      <div v-else-if="professionals.length === 0" class="text-center py-20">
+        <div
+          class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
+          <Search class="w-10 h-10 text-gray-400" />
         </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">Nenhum profissional encontrado</h3>
+        <p class="text-gray-600 mb-6">Tente ajustar seus filtros ou buscar por outro termo</p>
+        <Button @click="clearFilters" class="bg-rose-500 hover:bg-rose-600">
+          Ver todos os profissionais
+        </Button>
+      </div>
+
+      <div
+        v-else-if="viewMode === 'grid'"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      >
+        <ProfessionalCard
+          v-for="professional in professionals"
+          :key="professional.id"
+          :professional="professional"
+          view-mode="grid"
+          @view-profile="goToProfile"
+          @whatsapp-click="contactWhatsApp"
+        />
+      </div>
+
+      <div v-else class="space-y-4">
+        <ProfessionalCard
+          v-for="professional in professionals"
+          :key="professional.id"
+          :professional="professional"
+          view-mode="list"
+          @view-profile="goToProfile"
+          @whatsapp-click="contactWhatsApp"
+        />
       </div>
     </div>
   </div>
@@ -254,18 +170,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { supabase } from '@/services/api'
+import { determineSearchType, trackSearch } from '@/services/searchAnalytics'
 import { useProfessionalsStore } from '@/stores/professionals'
-import type { Professional, ProfessionalPhoto } from '@/types'
+import type { Professional } from '@/types'
 import { useDebounceFn } from '@vueuse/core'
-import {
-  Building2,
-  Camera,
-  CheckCircle,
-  Grid3X3,
-  List,
-  MapPin,
-  MessageCircle,
-} from 'lucide-vue-next'
+import { Grid3X3, List, Map, MapPin, Search, X } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -276,37 +186,35 @@ const professionalStore = useProfessionalsStore()
 const { professionals, loading } = storeToRefs(professionalStore)
 
 const searchQuery = ref('')
-const selectedCategory = ref('all')
-const selectedCity = ref('all')
+const sortBy = ref<'relevance' | 'rating' | 'newest' | 'price_asc' | 'price_desc' | 'distance'>(
+  'relevance',
+)
 const viewMode = ref<'grid' | 'list'>('grid')
 const gettingLocation = ref(false)
 const userLocation = ref<{ latitude: number; longitude: number } | null>(null)
 const showMap = ref(false)
 
-const hasActiveFilters = computed(() =>
-  Boolean(selectedCategory.value !== 'all' || selectedCity.value !== 'all' || searchQuery.value),
-)
+// Cache de categorias e complexos para determinar tipo de pesquisa
+const knownCategories = ref<string[]>([])
+const knownComplexes = ref<string[]>([])
 
-function handleSelectFromMap(professionalId: string) {
-  router.push(`/profissional/${professionalId}`)
-}
+const hasActiveFilters = computed(() => Boolean(searchQuery.value || sortBy.value !== 'relevance'))
 
 const nearbyCount = computed(() => {
   if (!userLocation.value) return 0
   return professionals.value.filter((p) => p.distance && p.distance <= 5).length
 })
 
-function getPrimaryPhoto(professional: Professional): ProfessionalPhoto | null {
-  if (!professional.photos?.length) return null
-  return professional.photos.find((p) => p.is_primary) || professional.photos[0]
-}
-
-function formatDistance(distance: number): string {
-  if (distance < 1) {
-    return `${Math.round(distance * 1000)}m de você`
-  } else {
-    return `${distance.toFixed(1)}km de você`
+function getSortLabel(sort: string): string {
+  const labels = {
+    relevance: 'Relevância',
+    rating: 'Melhor Avaliados',
+    newest: 'Mais Recentes',
+    price_asc: 'Menor Preço',
+    price_desc: 'Maior Preço',
+    distance: 'Mais Próximos',
   }
+  return labels[sort as keyof typeof labels] || 'Relevância'
 }
 
 function contactWhatsApp(professional: Professional) {
@@ -347,7 +255,7 @@ async function requestLocation() {
       timestamp: Date.now(),
     })
 
-    // Refazer busca com localização
+    sortBy.value = 'distance'
     handleSearch()
   } catch (error) {
     console.error('Erro ao obter localização:', error)
@@ -357,32 +265,88 @@ async function requestLocation() {
   }
 }
 
+// Carregar categorias e complexos conhecidos
+async function loadKnownData() {
+  try {
+    // Buscar categorias únicas
+    const { data: categoriesData } = await supabase
+      .from('professionals')
+      .select('category')
+      .eq('is_active', true)
+
+    if (categoriesData) {
+      knownCategories.value = [...new Set(categoriesData.map((p) => p.category))]
+    }
+
+    // Buscar complexos únicos
+    const { data: complexesData } = await supabase
+      .from('complexes')
+      .select('name')
+      .eq('is_active', true)
+
+    if (complexesData) {
+      knownComplexes.value = complexesData.map((c) => c.name)
+    }
+  } catch (error) {
+    console.error('Erro ao carregar dados conhecidos:', error)
+  }
+}
+
 const debouncedSearch = useDebounceFn(() => {
   handleSearch()
-}, 500)
+}, 400)
 
 async function handleSearch() {
-  const searchParams = {
-    query: searchQuery.value || undefined,
-    category: selectedCategory.value !== 'all' ? selectedCategory.value : undefined,
-    city: selectedCity.value !== 'all' ? selectedCity.value : undefined,
+  await professionalStore.searchProfessionalsAdvanced({
+    query: searchQuery.value || '',
+    categories: [],
+    specialties: [],
+    priceMin: 0,
+    priceMax: 1000,
+    cities: [],
+    neighborhoods: [],
+    hasPhotos: false,
+    responseTime: [],
+    acceptsUrgent: false,
+    verified: false,
+    sortBy:
+      sortBy.value === 'rating'
+        ? 'relevance'
+        : (sortBy.value as 'relevance' | 'newest' | 'price_asc' | 'price_desc' | 'distance'),
+    userLocation: userLocation.value || undefined,
+  })
+
+  // Trackear a pesquisa
+  if (searchQuery.value.trim()) {
+    const searchType = determineSearchType(
+      searchQuery.value,
+      knownCategories.value,
+      knownComplexes.value,
+    )
+    trackSearch(searchQuery.value.trim(), searchType, professionals.value.length)
   }
 
-  await professionalStore.searchProfessionals(searchParams)
+  // Se ordenar por rating, fazer ordenação manual após busca
+  if (sortBy.value === 'rating') {
+    professionals.value.sort((a, b) => {
+      if ((b.rating || 0) !== (a.rating || 0)) {
+        return (b.rating || 0) - (a.rating || 0)
+      }
+      return (b.review_count || 0) - (a.review_count || 0)
+    })
+  }
 
-  // Atualizar URL
   const query: Record<string, string> = {}
   if (searchQuery.value) query.q = searchQuery.value
-  if (selectedCategory.value !== 'all') query.categoria = selectedCategory.value
-  if (selectedCity.value !== 'all') query.cidade = selectedCity.value
+  if (sortBy.value !== 'relevance') query.ordenar = sortBy.value
 
   router.replace({ query })
 }
 
 function clearFilters() {
   searchQuery.value = ''
-  selectedCategory.value = 'all'
-  selectedCity.value = 'all'
+  sortBy.value = 'relevance'
+  userLocation.value = null
   handleSearch()
 }
 
@@ -391,20 +355,31 @@ function goToProfile(id: string) {
 }
 
 onMounted(() => {
-  // Pegar filtros da URL
+  // Carregar dados conhecidos para determinar tipo de pesquisa
+  loadKnownData()
+
   const urlQuery = route.query.q as string
-  const category = route.query.categoria as string
-  const city = route.query.cidade as string
+  const complex = route.query.complexo as string
+  const order = route.query.ordenar as string
 
   if (urlQuery) searchQuery.value = urlQuery
-  if (category) selectedCategory.value = category
-  if (city) selectedCity.value = city
+  if (complex) searchQuery.value = complex
+  if (order && ['relevance', 'rating', 'newest', 'price_asc', 'price_desc'].includes(order)) {
+    sortBy.value = order as typeof sortBy.value
+  }
 
   handleSearch()
 })
 </script>
 
 <style scoped>
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

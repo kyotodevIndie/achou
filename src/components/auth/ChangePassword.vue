@@ -1,9 +1,7 @@
-<!-- src/components/auth/ChangePassword.vue - VERSÃO CORRIGIDA -->
 <template>
   <div class="bg-white rounded-xl border border-gray-200 p-6">
     <h3 class="text-lg font-semibold mb-6">Alterar Senha</h3>
 
-    <!-- Sucesso -->
     <div v-if="passwordChanged" class="bg-green-50 border border-green-200 p-4 rounded-md mb-6">
       <div class="flex">
         <CheckCircle class="w-5 h-5 text-green-400 mt-0.5 mr-3" />
@@ -15,7 +13,6 @@
     </div>
 
     <form @submit.prevent="handleChangePassword" class="space-y-4">
-      <!-- Senha atual -->
       <div>
         <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-2">
           Senha atual
@@ -42,7 +39,6 @@
         </div>
       </div>
 
-      <!-- Nova senha -->
       <div>
         <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-2">
           Nova senha
@@ -69,7 +65,6 @@
         </div>
       </div>
 
-      <!-- Confirmar nova senha -->
       <div>
         <label for="confirmNewPassword" class="block text-sm font-medium text-gray-700 mb-2">
           Confirmar nova senha
@@ -96,7 +91,6 @@
         </div>
       </div>
 
-      <!-- Força da senha -->
       <div v-if="form.newPassword" class="space-y-2">
         <div class="flex justify-between text-xs">
           <span class="text-gray-600">Força da senha:</span>
@@ -111,12 +105,10 @@
         </div>
       </div>
 
-      <!-- Erro -->
       <div v-if="error" class="bg-red-50 border border-red-200 p-3 rounded-md">
         <p class="text-sm text-red-600">{{ error }}</p>
       </div>
 
-      <!-- Botões -->
       <div class="flex gap-3 pt-2">
         <Button type="button" @click="resetForm" variant="outline" :disabled="loading">
           Cancelar
@@ -138,7 +130,6 @@
       </div>
     </form>
 
-    <!-- Dicas -->
     <div class="mt-6 border-t border-gray-200 pt-4">
       <div class="text-sm text-gray-600">
         <h4 class="font-medium text-gray-900 mb-2">Dicas de segurança:</h4>
@@ -174,7 +165,6 @@ const form = reactive({
   confirmNewPassword: '',
 })
 
-// Validação
 const isFormValid = computed(() => {
   return (
     form.currentPassword.length >= 6 &&
@@ -184,7 +174,6 @@ const isFormValid = computed(() => {
   )
 })
 
-// Força da senha
 const passwordStrength = computed(() => {
   const password = form.newPassword
   let score = 0

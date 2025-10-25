@@ -1,7 +1,5 @@
-<!-- src/components/reviews/ReviewsList.vue -->
 <template>
   <div class="space-y-6">
-    <!-- Header com Resumo -->
     <div class="flex items-start justify-between">
       <div>
         <h3 class="text-2xl font-bold text-gray-900 mb-2">Avaliações</h3>
@@ -24,7 +22,6 @@
       </button>
     </div>
 
-    <!-- Distribuição de Estrelas -->
     <div v-if="reviews.length > 0" class="space-y-2 p-4 bg-gray-50 rounded-lg">
       <div v-for="rating in [5, 4, 3, 2, 1]" :key="rating" class="flex items-center gap-3">
         <span class="text-sm font-medium text-gray-700 w-12">{{ rating }} ⭐</span>
@@ -40,14 +37,12 @@
       </div>
     </div>
 
-    <!-- Lista de Reviews -->
     <div v-if="reviews.length > 0" class="space-y-4">
       <div
         v-for="review in displayedReviews"
         :key="review.id"
         class="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
       >
-        <!-- Header -->
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -61,13 +56,11 @@
           <ReviewStars :model-value="review.rating" readonly />
         </div>
 
-        <!-- Comentário -->
         <p v-if="review.comment" class="text-gray-700 leading-relaxed">
           {{ review.comment }}
         </p>
       </div>
 
-      <!-- Botão Ver Mais -->
       <button
         v-if="reviews.length > displayLimit && displayLimit < reviews.length"
         @click="displayLimit += 5"
@@ -77,7 +70,6 @@
       </button>
     </div>
 
-    <!-- Empty State -->
     <div v-else class="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
       <Star class="w-12 h-12 text-gray-400 mx-auto mb-4" />
       <h4 class="text-lg font-semibold text-gray-900 mb-2">Seja o primeiro a avaliar</h4>

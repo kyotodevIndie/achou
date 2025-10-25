@@ -88,6 +88,34 @@ const router = createRouter({
       component: () => import('@/pages/dashboard/SubscriptionSettings.vue'),
       meta: { requiresAuth: true },
     },
+    // 🔐 ROTA RESTRITA: Gerenciar Complexos
+    {
+      path: '/admin/complexes',
+      name: 'ManageComplexes',
+      component: () => import('../pages/admin/ManageComplexes.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      beforeEnter: (to, from, next) => {
+        const authStore = useAuthStore()
+        const userEmail = authStore.user?.email
+        const authorizedEmail = import.meta.env.VITE_ADMIN_EMAIL
+
+        // Verificar se está autenticado
+        if (!authStore.isAuthenticated) {
+          next('/login')
+          return
+        }
+
+        // Verificar se está autorizado
+        if (!userEmail || userEmail !== authorizedEmail) {
+          console.log('⛔ Acesso negado - Email não autorizado:', userEmail)
+          next('/dashboard')
+          return
+        }
+
+        console.log('✅ Acesso autorizado:', userEmail)
+        next()
+      },
+    },
     // 404
     {
       path: '/:pathMatch(.*)*',

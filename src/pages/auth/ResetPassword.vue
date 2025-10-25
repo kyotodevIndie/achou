@@ -1,4 +1,3 @@
-<!-- src/pages/auth/ResetPassword.vue -->
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
@@ -15,7 +14,6 @@
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <!-- Sucesso -->
         <div v-if="passwordUpdated" class="text-center space-y-4">
           <div
             class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"
@@ -30,9 +28,7 @@
           </Button>
         </div>
 
-        <!-- Formulário -->
         <form v-else @submit.prevent="handleUpdatePassword" class="space-y-6">
-          <!-- Nova senha -->
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
               Nova senha
@@ -59,7 +55,6 @@
             <div class="mt-1 text-xs text-gray-500">Mínimo 6 caracteres</div>
           </div>
 
-          <!-- Confirmar senha -->
           <div>
             <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">
               Confirmar nova senha
@@ -85,7 +80,6 @@
             </div>
           </div>
 
-          <!-- Força da senha -->
           <div v-if="form.password" class="space-y-2">
             <div class="flex justify-between text-xs">
               <span class="text-gray-600">Força da senha:</span>
@@ -100,12 +94,10 @@
             </div>
           </div>
 
-          <!-- Erro -->
           <div v-if="error" class="bg-red-50 border border-red-200 p-3 rounded-md">
             <p class="text-sm text-red-600">{{ error }}</p>
           </div>
 
-          <!-- Submit -->
           <div>
             <Button
               type="submit"
@@ -123,7 +115,6 @@
             </Button>
           </div>
 
-          <!-- Link para voltar -->
           <div class="text-center">
             <button
               type="button"
@@ -135,7 +126,6 @@
           </div>
         </form>
 
-        <!-- Dicas de segurança -->
         <div class="mt-6 border-t border-gray-200 pt-6">
           <div class="text-sm text-gray-600">
             <h4 class="font-medium text-gray-900 mb-2">Dicas para uma senha segura:</h4>
@@ -171,12 +161,10 @@ const form = reactive({
   confirmPassword: '',
 })
 
-// Computed para validação de senha
 const isPasswordValid = computed(() => {
   return form.password.length >= 6 && form.password === form.confirmPassword
 })
 
-// Força da senha
 const passwordStrength = computed(() => {
   const password = form.password
   let score = 0

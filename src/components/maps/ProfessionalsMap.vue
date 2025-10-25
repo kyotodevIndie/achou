@@ -178,6 +178,23 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+/* FIX: Garantir que o mapa fique ABAIXO de modais, dialogs e headers */
+:deep(.leaflet-container) {
+  z-index: 1 !important;
+}
+
+:deep(.leaflet-pane) {
+  z-index: 1 !important;
+}
+
+:deep(.leaflet-control) {
+  z-index: 2 !important;
+}
+
+:deep(.leaflet-popup-pane) {
+  z-index: 3 !important;
+}
+
 :deep(.leaflet-popup-content-wrapper) {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);

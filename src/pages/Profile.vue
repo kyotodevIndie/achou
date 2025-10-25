@@ -1,4 +1,3 @@
-<!-- src/pages/Profile.vue - VERSÃO CORRIGIDA -->
 <template>
   <div class="min-h-screen bg-white">
     <div v-if="loading" class="container mx-auto p-4">
@@ -20,7 +19,6 @@
     </div>
 
     <div v-else>
-      <!-- Header com Breadcrumb -->
       <div class="border-b border-gray-200 bg-white sticky top-0 z-40">
         <div class="container mx-auto px-4 py-4">
           <Button variant="ghost" @click="$router.back()" class="mb-2"> ← Voltar </Button>
@@ -28,13 +26,11 @@
         </div>
       </div>
 
-      <!-- Galeria de Fotos -->
       <section
         v-if="professional.photos && professional.photos.length > 0"
         class="container mx-auto px-4 py-6"
       >
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 max-w-6xl mx-auto">
-          <!-- Foto Principal -->
           <div v-if="mainPhoto" class="lg:row-span-2">
             <img
               :src="mainPhoto.photo_url"
@@ -45,7 +41,6 @@
             />
           </div>
 
-          <!-- Fotos Secundárias -->
           <div class="grid grid-cols-2 gap-2">
             <div
               v-for="(photo, index) in secondaryPhotos.slice(0, 4)"
@@ -59,7 +54,6 @@
                 @click="openGallery(index + 1)"
                 loading="lazy"
               />
-              <!-- Overlay "Ver mais fotos" -->
               <div
                 v-if="index === 3 && secondaryPhotos.length > 4"
                 class="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center cursor-pointer"
@@ -72,12 +66,9 @@
         </div>
       </section>
 
-      <!-- Conteúdo Principal -->
       <div class="container mx-auto px-4 py-6">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <!-- Coluna Principal -->
           <div class="lg:col-span-2 space-y-8">
-            <!-- Informações Básicas -->
             <section>
               <div class="flex items-start justify-between mb-4">
                 <div>
@@ -111,13 +102,11 @@
               </div>
             </section>
 
-            <!-- Descrição -->
             <section v-if="professional.description">
               <h3 class="text-xl font-semibold text-gray-900 mb-4">Sobre o profissional</h3>
               <p class="text-gray-700 leading-relaxed">{{ professional.description }}</p>
             </section>
 
-            <!-- Serviços/Especialidades -->
             <section v-if="professional.specialty">
               <h3 class="text-xl font-semibold text-gray-900 mb-4">Especialidades</h3>
               <div class="flex flex-wrap gap-2">
@@ -131,7 +120,6 @@
               </div>
             </section>
 
-            <!-- Informações Adicionais -->
             <section>
               <h3 class="text-xl font-semibold text-gray-900 mb-4">Informações</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -158,7 +146,6 @@
               </div>
             </section>
 
-            <!-- Mapa de Localização -->
             <section>
               <h3 class="text-xl font-semibold text-gray-900 mb-4">Localização</h3>
               <StaticMap
@@ -193,13 +180,11 @@
               </div>
             </section>
 
-            <!-- Seção de Reviews -->
             <section>
               <ReviewsList :reviews="reviews" @open-review-modal="openReviewModal" />
             </section>
           </div>
 
-          <!-- Sidebar - Card de Contato -->
           <div class="lg:col-span-1">
             <div class="sticky top-24">
               <div class="border border-gray-200 rounded-2xl p-6 shadow-lg">
@@ -210,7 +195,6 @@
                   </div>
                 </div>
 
-                <!-- Informações de Contato -->
                 <div class="space-y-4 mb-6">
                   <div class="flex items-center gap-3">
                     <div
@@ -239,7 +223,6 @@
                   </div>
                 </div>
 
-                <!-- Botão Principal -->
                 <Button
                   @click="contactWhatsApp"
                   class="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-4 mb-4"
@@ -258,7 +241,6 @@
       </div>
     </div>
 
-    <!-- Modal de Galeria -->
     <div
       v-if="showGallery && professional && professional.photos"
       class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
@@ -280,7 +262,6 @@
           class="max-w-full max-h-[85vh] object-contain rounded-lg"
         />
 
-        <!-- Navegação -->
         <div v-if="professional.photos.length > 1" class="flex items-center justify-between mt-4">
           <Button
             @click.stop="previousPhoto"
@@ -307,7 +288,6 @@
       </div>
     </div>
 
-    <!-- Modal de Review -->
     <ReviewModal
       v-if="professional"
       :is-open="showReviewModal"
@@ -353,7 +333,6 @@ const showGallery = ref(false)
 const currentPhotoIndex = ref(0)
 const showReviewModal = ref(false)
 
-// Computeds para organizar fotos
 const mainPhoto = computed<ProfessionalPhoto | null>(() => {
   if (!professional.value?.photos?.length) return null
   return professional.value.photos.find((p) => p.is_primary) || professional.value.photos[0]
@@ -443,7 +422,6 @@ onMounted(async () => {
   if (id) {
     await professionalStore.getProfessional(id)
 
-    // Carregar reviews
     await reviewsStore.getReviews(id)
 
     if (professional.value) {

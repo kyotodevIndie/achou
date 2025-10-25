@@ -1,4 +1,3 @@
-<!-- src/pages/auth/ForgotPassword.vue -->
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
@@ -15,7 +14,6 @@
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <!-- Sucesso -->
         <div v-if="emailSent" class="text-center space-y-4">
           <div
             class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"
@@ -49,7 +47,6 @@
           </div>
         </div>
 
-        <!-- Formulário -->
         <form v-else @submit.prevent="handleResetPassword" class="space-y-6">
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
@@ -66,12 +63,10 @@
             />
           </div>
 
-          <!-- Erro -->
           <div v-if="error" class="bg-red-50 border border-red-200 p-3 rounded-md">
             <p class="text-sm text-red-600">{{ error }}</p>
           </div>
 
-          <!-- Submit -->
           <div>
             <Button
               type="submit"
@@ -89,7 +84,6 @@
             </Button>
           </div>
 
-          <!-- Links -->
           <div class="text-center space-y-2">
             <button
               type="button"
@@ -109,7 +103,6 @@
           </div>
         </form>
 
-        <!-- Dicas -->
         <div class="mt-6 border-t border-gray-200 pt-6">
           <div class="text-sm text-gray-600">
             <h4 class="font-medium text-gray-900 mb-2">Não recebeu o email?</h4>

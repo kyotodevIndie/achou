@@ -19,7 +19,6 @@ export interface Professional {
   city: string
   neighborhood?: string // ← NOVO
   average_rating?: number
-  review_count?: number
   state?: string
   zip_code?: string
   latitude?: number // ← NOVO
@@ -34,6 +33,8 @@ export interface Professional {
   updated_at?: string
   photos?: ProfessionalPhoto[]
   distance?: number // ← Calculado dinamicamente
+  rating?: number
+  review_count?: number
 }
 
 export interface AdvancedSearchParams {

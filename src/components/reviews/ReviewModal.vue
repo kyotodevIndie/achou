@@ -1,4 +1,3 @@
-<!-- src/components/reviews/ReviewModal.vue - COM CAPTCHA -->
 <template>
   <div
     v-if="isOpen"
@@ -9,7 +8,6 @@
       class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto"
       @click.stop
     >
-      <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-900">Deixar avaliação</h2>
         <button @click="handleClose" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -17,7 +15,6 @@
         </button>
       </div>
 
-      <!-- Profissional Info -->
       <div class="flex items-center gap-3 mb-6 p-4 bg-gray-50 rounded-lg">
         <div class="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center">
           <User class="w-6 h-6 text-rose-600" />
@@ -28,14 +25,11 @@
         </div>
       </div>
 
-      <!-- Mensagem de erro geral -->
       <div v-if="generalError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
         <p class="text-sm text-red-600">{{ generalError }}</p>
       </div>
 
-      <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-6">
-        <!-- Rating -->
         <div>
           <label class="block text-sm font-medium text-gray-900 mb-2"> Sua avaliação * </label>
           <ReviewStars v-model="form.rating" />
@@ -44,7 +38,6 @@
           </p>
         </div>
 
-        <!-- Nome -->
         <div>
           <label class="block text-sm font-medium text-gray-900 mb-2"> Seu nome * </label>
           <input
@@ -59,7 +52,6 @@
           </p>
         </div>
 
-        <!-- Email (opcional mas recomendado) -->
         <div>
           <label class="block text-sm font-medium text-gray-900 mb-2"> Email (opcional) </label>
           <input
@@ -73,7 +65,6 @@
           </p>
         </div>
 
-        <!-- Comentário -->
         <div>
           <label class="block text-sm font-medium text-gray-900 mb-2">
             Comentário (opcional)
@@ -88,7 +79,6 @@
           <p class="text-xs text-gray-500 mt-1">{{ form.comment.length }}/500 caracteres</p>
         </div>
 
-        <!-- hCaptcha -->
         <div>
           <div ref="captchaContainer" class="flex justify-center"></div>
           <p v-if="errors.captcha" class="text-sm text-red-600 mt-1">
@@ -96,7 +86,6 @@
           </p>
         </div>
 
-        <!-- Termos -->
         <div class="flex items-start gap-2">
           <input v-model="form.acceptTerms" type="checkbox" id="terms" class="mt-1" />
           <label for="terms" class="text-sm text-gray-600">
@@ -107,7 +96,6 @@
           {{ errors.terms }}
         </p>
 
-        <!-- Botões -->
         <div class="flex gap-3 pt-4">
           <button
             type="button"
@@ -175,7 +163,6 @@ const errors = reactive({
   terms: '',
 })
 
-// Carregar hCaptcha script
 function loadHCaptchaScript() {
   if (document.getElementById('hcaptcha-script')) return
 
@@ -187,11 +174,9 @@ function loadHCaptchaScript() {
   document.head.appendChild(script)
 }
 
-// Renderizar hCaptcha
 function renderCaptcha() {
   if (!captchaContainer.value || !window.hcaptcha) return
 
-  // Aguardar hCaptcha estar pronto
   const interval = setInterval(() => {
     if (window.hcaptcha && window.hcaptcha.render) {
       clearInterval(interval)
@@ -210,7 +195,6 @@ function renderCaptcha() {
   }, 100)
 }
 
-// Reset form quando modal abrir
 watch(
   () => props.isOpen,
   (isOpen) => {
@@ -227,10 +211,8 @@ watch(
       errors.captcha = ''
       errors.terms = ''
 
-      // Renderizar captcha após modal abrir
       setTimeout(renderCaptcha, 100)
     } else {
-      // Reset captcha ao fechar
       if (captchaWidgetId.value !== null && window.hcaptcha) {
         window.hcaptcha.reset(captchaWidgetId.value)
       }
@@ -303,7 +285,6 @@ onMounted(() => {
   loadHCaptchaScript()
 })
 
-// Tipo para hCaptcha global
 declare global {
   interface Window {
     hcaptcha: any

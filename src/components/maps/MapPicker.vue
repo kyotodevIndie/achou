@@ -6,45 +6,65 @@
         Clique no mapa para marcar a localização exata da sua sala comercial
       </p>
 
-      <!-- Input de busca de endereço -->
-      <div class="flex gap-2 mb-3">
-        <Input
-          v-model="searchAddress"
-          placeholder="Digite o endereço para buscar..."
-          class="flex-1"
-          @keydown.enter.prevent="searchLocation"
-        />
-        <Button @click="searchLocation" type="button" :disabled="searching || !searchAddress">
-          {{ searching ? 'Buscando...' : 'Buscar' }}
-        </Button>
+      <div class="relative mb-3">
+        <div class="flex gap-2">
+          <div class="flex-1 relative">
+            <Input
+              v-model="searchAddress"
+              placeholder="Digite o endereço para buscar..."
+              @input="handleSearchInput"
+              @keydown.enter.prevent="selectFirstSuggestion"
+              @focus="showSuggestions = true"
+              @blur="hideSuggestionsDelayed"
+            />
+
+            <div v-if="searching" class="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-rose-500"></div>
+            </div>
+
+            <div
+              v-if="showSuggestions && suggestions.length > 0"
+              class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+            >
+              <div
+                v-for="(suggestion, index) in suggestions"
+                :key="index"
+                class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                @mousedown.prevent="selectSuggestion(suggestion)"
+              >
+                <div class="flex items-start gap-2">
+                  <MapPin class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <span class="text-sm text-gray-900">{{ suggestion.display_name }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            @click.prevent="searchCurrentAddress"
+            type="button"
+            :disabled="searching || !searchAddress"
+          >
+            {{ searching ? 'Buscando...' : 'Buscar' }}
+          </Button>
+        </div>
       </div>
 
-      <!-- Coordenadas selecionadas -->
       <div
         v-if="modelValue.latitude && modelValue.longitude"
         class="bg-green-50 border border-green-200 rounded-lg p-3 text-sm"
       >
         <div class="flex items-center justify-between">
           <div>
-            <span class="text-green-800 font-medium">Localização marcada</span>
+            <span class="text-green-800 font-medium">✓ Localização marcada</span>
             <span class="text-green-600 ml-2">
               {{ modelValue.latitude.toFixed(6) }}, {{ modelValue.longitude.toFixed(6) }}
             </span>
           </div>
-          <Button
-            @click="clearLocation"
-            variant="ghost"
-            size="sm"
-            type="button"
-            class="text-red-600 hover:text-red-700"
-          >
-            Limpar
-          </Button>
         </div>
       </div>
     </div>
 
-    <!-- Mapa -->
     <div
       ref="mapContainer"
       class="map-wrapper border-2 border-dashed border-gray-300 rounded-lg"
@@ -52,7 +72,7 @@
     ></div>
 
     <p class="text-xs text-gray-500 mt-2">
-      Dica: Use o scroll do mouse para dar zoom e arraste para mover o mapa
+      💡 Dica: Use o scroll do mouse para dar zoom e arraste para mover o mapa
     </p>
   </div>
 </template>
@@ -62,7 +82,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { MapPin } from 'lucide-vue-next'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 interface Location {
   latitude: number | null
@@ -81,10 +102,14 @@ const emit = defineEmits<{
 const mapContainer = ref<HTMLElement>()
 const searchAddress = ref('')
 const searching = ref(false)
+const suggestions = ref<Array<{ display_name: string; lat: string; lon: string }>>([])
+const showSuggestions = ref(false)
+const mapLoading = ref(true)
 let map: L.Map | null = null
 let marker: L.Marker | null = null
+let searchTimeout: NodeJS.Timeout | null = null
+const isInitialized = ref(false)
 
-// Ícone customizado para o marker
 const customIcon = L.divIcon({
   className: 'custom-marker',
   html: `
@@ -107,44 +132,116 @@ const customIcon = L.divIcon({
   iconAnchor: [20, 40],
 })
 
-function initMap() {
-  if (!mapContainer.value) return
+function destroyMap() {
+  console.log('🧹 Destruindo mapa...')
 
-  // Usar coordenadas iniciais ou centro de Fortaleza
-  const initialLat = props.modelValue.latitude || props.initialCenter?.lat || -3.7327
-  const initialLng = props.modelValue.longitude || props.initialCenter?.lng || -38.527
-
-  map = L.map(mapContainer.value).setView([initialLat, initialLng], 15)
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 19,
-  }).addTo(map)
-
-  // Se já tiver coordenadas, adicionar marker
-  if (props.modelValue.latitude && props.modelValue.longitude) {
-    addMarker(props.modelValue.latitude, props.modelValue.longitude)
+  if (marker) {
+    try {
+      if (map) map.removeLayer(marker)
+    } catch (e) {
+      console.log('Erro ao remover marker:', e)
+    }
+    marker = null
   }
 
-  // Evento de clique no mapa
-  map.on('click', (e: L.LeafletMouseEvent) => {
-    const { lat, lng } = e.latlng
-    updateLocation(lat, lng)
-  })
+  if (map) {
+    try {
+      map.off()
+      map.remove()
+    } catch (e) {
+      console.log('Erro ao remover mapa:', e)
+    }
+    map = null
+  }
+
+  // CRÍTICO: Limpar o container HTML completamente
+  if (mapContainer.value) {
+    mapContainer.value.innerHTML = ''
+    // Remover atributo que o Leaflet adiciona
+    mapContainer.value.removeAttribute('data-leaflet-id')
+    // Remover classes do Leaflet
+    mapContainer.value.className = 'map-wrapper border-2 border-dashed border-gray-300 rounded-lg'
+  }
+
+  isInitialized.value = false
+  console.log('✅ Mapa destruído')
+}
+
+async function initMap() {
+  if (!mapContainer.value) {
+    console.log('⚠️ Container do mapa não encontrado')
+    return
+  }
+
+  // Sempre destruir antes de criar novo
+  if (map || isInitialized.value) {
+    console.log('🔄 Mapa existe, destruindo antes de recriar...')
+    destroyMap()
+    await nextTick()
+  }
+
+  try {
+    console.log('🗺️ Inicializando novo mapa...')
+
+    const initialLat = props.modelValue.latitude || props.initialCenter?.lat || -3.7327
+    const initialLng = props.modelValue.longitude || props.initialCenter?.lng || -38.527
+
+    map = L.map(mapContainer.value, {
+      center: [initialLat, initialLng],
+      zoom: 15,
+      zoomControl: true,
+      attributionControl: true,
+      scrollWheelZoom: true,
+    })
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map)
+
+    // Adicionar marker se já tiver localização
+    if (props.modelValue.latitude && props.modelValue.longitude) {
+      addMarker(props.modelValue.latitude, props.modelValue.longitude)
+    }
+
+    // Evento de clique no mapa
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng
+      updateLocation(lat, lng)
+    })
+
+    // Forçar recalcular tamanho do mapa
+    setTimeout(() => {
+      if (map) {
+        map.invalidateSize()
+        isInitialized.value = true
+        console.log('✅ Mapa inicializado com sucesso')
+      }
+    }, 150)
+  } catch (error) {
+    console.error('❌ Erro ao inicializar mapa:', error)
+    // Em caso de erro, tentar limpar e mostrar mensagem
+    destroyMap()
+  }
 }
 
 function addMarker(lat: number, lng: number) {
-  if (!map) return
+  if (!map) {
+    console.log('⚠️ Mapa não disponível para adicionar marker')
+    return
+  }
 
-  // Remover marker anterior se existir
+  // Remover marker anterior
   if (marker) {
-    marker.remove()
+    try {
+      map.removeLayer(marker)
+    } catch (e) {
+      console.log('Erro ao remover marker anterior:', e)
+    }
   }
 
   // Adicionar novo marker
   marker = L.marker([lat, lng], { icon: customIcon }).addTo(map)
-
-  // Centralizar mapa no marker
   map.setView([lat, lng], map.getZoom())
 }
 
@@ -157,27 +254,82 @@ function updateLocation(lat: number, lng: number) {
   addMarker(lat, lng)
 }
 
-function clearLocation() {
-  emit('update:modelValue', {
-    latitude: null,
-    longitude: null,
-  })
+async function handleSearchInput() {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
 
-  if (marker) {
-    marker.remove()
-    marker = null
+  if (!searchAddress.value.trim()) {
+    suggestions.value = []
+    showSuggestions.value = false
+    return
+  }
+
+  searchTimeout = setTimeout(async () => {
+    await fetchSuggestions()
+  }, 300)
+}
+
+async function fetchSuggestions() {
+  if (!searchAddress.value || searchAddress.value.length < 3) return
+
+  searching.value = true
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddress.value)}&limit=5&countrycodes=br`,
+    )
+
+    const data = await response.json()
+    suggestions.value = data || []
+    showSuggestions.value = suggestions.value.length > 0
+  } catch (error) {
+    console.error('Erro ao buscar sugestões:', error)
+    suggestions.value = []
+  } finally {
+    searching.value = false
   }
 }
 
-async function searchLocation() {
+function selectSuggestion(suggestion: { display_name: string; lat: string; lon: string }) {
+  searchAddress.value = suggestion.display_name
+  showSuggestions.value = false
+
+  const latitude = parseFloat(suggestion.lat)
+  const longitude = parseFloat(suggestion.lon)
+
+  updateLocation(latitude, longitude)
+
+  setTimeout(() => {
+    if (map) {
+      map.invalidateSize()
+      map.setView([latitude, longitude], 17)
+    }
+  }, 100)
+}
+
+function selectFirstSuggestion() {
+  if (suggestions.value.length > 0) {
+    selectSuggestion(suggestions.value[0])
+  } else {
+    searchCurrentAddress()
+  }
+}
+
+function hideSuggestionsDelayed() {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+async function searchCurrentAddress() {
   if (!searchAddress.value || !map) return
 
   searching.value = true
 
   try {
-    // Usar Nominatim API (gratuita) do OpenStreetMap para geocoding
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddress.value)}&limit=1`,
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddress.value)}&limit=1&countrycodes=br`,
     )
 
     const data = await response.json()
@@ -188,7 +340,13 @@ async function searchLocation() {
       const longitude = parseFloat(lon)
 
       updateLocation(latitude, longitude)
-      map.setView([latitude, longitude], 17)
+
+      setTimeout(() => {
+        if (map) {
+          map.invalidateSize()
+          map.setView([latitude, longitude], 17)
+        }
+      }, 100)
     } else {
       alert('Endereço não encontrado. Tente ser mais específico.')
     }
@@ -200,28 +358,49 @@ async function searchLocation() {
   }
 }
 
-// Watch para atualizar marker quando modelValue mudar externamente
+// Watch para mudanças no modelValue
 watch(
   () => props.modelValue,
   (newValue) => {
     if (newValue.latitude && newValue.longitude && map) {
       addMarker(newValue.latitude, newValue.longitude)
-    } else if (marker) {
-      marker.remove()
+    } else if (!newValue.latitude && !newValue.longitude && marker) {
+      if (map) {
+        try {
+          map.removeLayer(marker)
+        } catch (e) {
+          console.log('Erro ao remover marker:', e)
+        }
+      }
       marker = null
     }
   },
   { deep: true },
 )
 
-onMounted(() => {
-  initMap()
+// Watch para initialCenter (quando editar complexo)
+watch(
+  () => props.initialCenter,
+  async (newCenter) => {
+    if (newCenter) {
+      console.log('🔄 InitialCenter mudou, reinicializando mapa...', newCenter)
+      await initMap()
+    }
+  },
+  { deep: true },
+)
+
+onMounted(async () => {
+  console.log('📍 MapPicker montado')
+  await nextTick()
+  await initMap()
 })
 
-onUnmounted(() => {
-  if (map) {
-    map.remove()
-    map = null
+onBeforeUnmount(() => {
+  console.log('🗑️ MapPicker desmontado, limpando recursos...')
+  destroyMap()
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
   }
 })
 </script>
@@ -239,7 +418,42 @@ onUnmounted(() => {
   background-color: #f3f4f6;
 }
 
+/* FIX: Garantir que o mapa fique ABAIXO de modais, dialogs e headers */
+:deep(.leaflet-container) {
+  z-index: 1 !important;
+  width: 100%;
+  height: 100%;
+}
+
+:deep(.leaflet-pane) {
+  z-index: 1 !important;
+}
+
+:deep(.leaflet-control) {
+  z-index: 2 !important;
+}
+
 :deep(.leaflet-control-attribution) {
   font-size: 10px;
+  z-index: 2 !important;
+}
+
+/* Estilo do dropdown de sugestões */
+:deep(.suggestions-dropdown) {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+:deep(.suggestions-dropdown::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:deep(.suggestions-dropdown::-webkit-scrollbar-track) {
+  background: #f7fafc;
+}
+
+:deep(.suggestions-dropdown::-webkit-scrollbar-thumb) {
+  background-color: #cbd5e0;
+  border-radius: 3px;
 }
 </style>

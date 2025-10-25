@@ -1,4 +1,3 @@
-<!-- src/pages/dashboard/SubscriptionSettings.vue - UI MELHORADA -->
 <template>
   <div class="container mx-auto p-4">
     <div class="mb-6">
@@ -11,7 +10,6 @@
     </div>
 
     <div class="max-w-4xl mx-auto space-y-8">
-      <!-- Status da Assinatura -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-semibold">Status da Assinatura</h2>
@@ -30,7 +28,6 @@
           <p class="text-gray-600 text-sm">Carregando assinatura...</p>
         </div>
 
-        <!-- Sem assinatura -->
         <div v-else-if="!currentSubscription" class="text-center py-8">
           <div class="text-4xl mb-4">💳</div>
           <h3 class="text-lg font-semibold mb-2">Nenhuma assinatura ativa</h3>
@@ -40,9 +37,7 @@
           </Button>
         </div>
 
-        <!-- Com assinatura -->
         <div v-else class="space-y-6">
-          <!-- AVISO DE CANCELAMENTO -->
           <div
             v-if="currentSubscription.cancel_at_period_end"
             class="bg-red-50 border-2 border-red-200 rounded-xl p-5"
@@ -79,7 +74,6 @@
             </div>
           </div>
 
-          <!-- Card do plano atual -->
           <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div>
               <h4 class="font-semibold text-gray-900">
@@ -99,12 +93,10 @@
             </div>
           </div>
 
-          <!-- Informações do período - APENAS SE NÃO ESTIVER CANCELADA -->
           <div
             v-if="!currentSubscription.cancel_at_period_end"
             class="grid grid-cols-1 md:grid-cols-2 gap-6"
           >
-            <!-- Período de teste -->
             <div v-if="isOnTrial" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div class="flex items-center gap-3 mb-2">
                 <Gift class="w-5 h-5 text-yellow-600" />
@@ -118,7 +110,6 @@
               </div>
             </div>
 
-            <!-- Próximo pagamento -->
             <div v-else class="bg-green-50 border border-green-200 rounded-lg p-4">
               <div class="flex items-center gap-3 mb-2">
                 <Calendar class="w-5 h-5 text-green-600" />
@@ -133,9 +124,7 @@
             </div>
           </div>
 
-          <!-- Ações -->
           <div class="flex flex-wrap gap-3">
-            <!-- Cancelar assinatura -->
             <Button
               v-if="isSubscribed && !currentSubscription.cancel_at_period_end"
               @click="showCancelModal = true"
@@ -146,7 +135,6 @@
               Cancelar assinatura
             </Button>
 
-            <!-- Atualizar método de pagamento -->
             <Button
               variant="outline"
               v-if="!currentSubscription.cancel_at_period_end"
@@ -160,7 +148,6 @@
         </div>
       </div>
 
-      <!-- Histórico de Pagamentos -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <h2 class="text-xl font-semibold mb-6">Histórico de Pagamentos</h2>
 
@@ -214,7 +201,6 @@
       </div>
     </div>
 
-    <!-- Modal de Cancelamento -->
     <div
       v-if="showCancelModal"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -285,7 +271,6 @@ async function handleUpdatePaymentMethod() {
   }
 }
 
-// Computed para status mais claro
 const getStatusLabel = () => {
   if (!currentSubscription.value) return 'Inativa'
 
@@ -367,7 +352,6 @@ function getTransactionStatus(status: string) {
 }
 
 onMounted(async () => {
-  // Buscar ID do profissional pelo user_id
   if (!authStore.user?.id) {
     router.push('/login')
     return
@@ -388,7 +372,6 @@ onMounted(async () => {
 
     professionalId.value = professional.id
 
-    // Carregar dados da assinatura
     await Promise.all([
       subscriptionStore.loadCurrentSubscription(professional.id),
       subscriptionStore.loadTransactions(professional.id),

@@ -1,8 +1,6 @@
-<!-- src/pages/Subscription.vue - VERSÃO CORRIGIDA -->
 <template>
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
-      <!-- Header -->
       <div class="text-center mb-12">
         <h1 class="text-4xl font-bold text-gray-900 mb-4">Escolha seu plano no ACHOU</h1>
         <p class="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -10,7 +8,6 @@
         </p>
       </div>
 
-      <!-- Loading -->
       <div v-if="loading" class="text-center py-12">
         <div
           class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto mb-4"
@@ -18,9 +15,8 @@
         <p class="text-gray-600">Carregando planos...</p>
       </div>
 
-      <!-- Planos -->
       <div v-else class="max-w-4xl mx-auto">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <div class="flex items-center justify-center gap-8 mb-12">
           <div
             v-for="plan in plans"
             :key="plan.id"
@@ -31,7 +27,6 @@
                 : 'border-gray-200'
             "
           >
-            <!-- Badge Popular -->
             <div
               v-if="plan.name.includes('Profissional')"
               class="absolute -top-4 left-1/2 transform -translate-x-1/2"
@@ -52,7 +47,6 @@
               <p class="text-gray-600">{{ plan.description }}</p>
             </div>
 
-            <!-- Features -->
             <div class="space-y-4 mb-8">
               <div class="flex items-center gap-3">
                 <CheckCircle class="w-5 h-5 text-green-500" />
@@ -76,16 +70,10 @@
               </div>
             </div>
 
-            <!-- Botão -->
             <Button
               @click="selectPlan(plan)"
               :disabled="subscribing"
-              class="w-full py-3 text-lg"
-              :class="
-                plan.id === selectedPlan?.id
-                  ? 'bg-rose-500 hover:bg-rose-600'
-                  : 'bg-gray-800 hover:bg-gray-900'
-              "
+              class="w-full py-3 text-lg bg-rose-500 hover:bg-rose-600"
             >
               {{ subscribing && selectedPlan?.id === plan.id ? 'Processando...' : 'Assinar Agora' }}
             </Button>
@@ -96,7 +84,6 @@
           </div>
         </div>
 
-        <!-- FAQ -->
         <div class="bg-white rounded-2xl p-8 shadow-lg">
           <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Perguntas Frequentes</h2>
 
@@ -104,7 +91,7 @@
             <div>
               <h3 class="font-semibold text-gray-900 mb-2">Como funciona o pagamento?</h3>
               <p class="text-gray-600 text-sm">
-                Pagamento mensal recorrente de R$ 19,99. O primeiro pagamento é cobrado
+                Pagamento mensal recorrente de R$ 29,99. O primeiro pagamento é cobrado
                 imediatamente.
               </p>
             </div>
@@ -133,7 +120,6 @@
           </div>
         </div>
 
-        <!-- CTA Bottom -->
         <div class="text-center mt-12">
           <p class="text-gray-600 mb-6">Pronto para aumentar sua clientela?</p>
           <Button
@@ -143,12 +129,11 @@
             size="lg"
             class="bg-rose-500 hover:bg-rose-600 px-8 py-4 text-lg"
           >
-            Assinar por R$ 19,99/mês
+            Assinar por R$ 29,99/mês
           </Button>
         </div>
       </div>
 
-      <!-- Loading Overlay -->
       <div
         v-if="subscribing"
         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
@@ -183,21 +168,17 @@ const { plans, loading, mainPlan } = storeToRefs(subscriptionStore)
 const selectedPlan = ref<any>(null)
 const subscribing = ref(false)
 
-// Computed para formatar preço
 const formatPrice = computed(() => {
   return (priceCents: number) => subscriptionStore.formatPrice(priceCents)
 })
 
-// Selecionar plano
 function selectPlan(plan: any) {
   selectedPlan.value = plan
   startSubscription(plan)
 }
 
-// Iniciar processo de assinatura
 async function startSubscription(plan: any) {
   if (!authStore.isAuthenticated) {
-    // Salvar plano escolhido e redirecionar para login
     localStorage.setItem('selectedPlan', JSON.stringify(plan))
     router.push('/login?redirect=subscribe')
     return
@@ -206,7 +187,6 @@ async function startSubscription(plan: any) {
   subscribing.value = true
 
   try {
-    // Buscar ID do profissional
     if (!authStore.user) {
       console.error('Não existe authStore.user')
       return
@@ -219,12 +199,10 @@ async function startSubscription(plan: any) {
       .single()
 
     if (!professional) {
-      // Criar perfil primeiro
       router.push('/dashboard/perfil?first=true')
       return
     }
 
-    // Criar checkout session
     await subscriptionStore.createCheckoutSession(professional.id, plan.id)
   } catch (error) {
     console.error('Erro ao iniciar assinatura:', error)
@@ -235,10 +213,8 @@ async function startSubscription(plan: any) {
 }
 
 onMounted(async () => {
-  // Carregar planos
   await subscriptionStore.loadPlans()
 
-  // Verificar se há plano salvo (após login)
   const savedPlan = localStorage.getItem('selectedPlan')
   if (savedPlan && authStore.isAuthenticated) {
     const plan = JSON.parse(savedPlan)

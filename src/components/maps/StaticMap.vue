@@ -1,10 +1,8 @@
 <template>
   <div class="static-map-container">
-    <!-- Mapa interativo compacto -->
     <div v-if="latitude && longitude" class="relative rounded-lg overflow-hidden bg-gray-100">
       <div ref="mapContainer" class="map-wrapper"></div>
 
-      <!-- Overlay com informações e botão -->
       <div
         class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 text-white pointer-events-none"
       >
@@ -27,7 +25,6 @@
       </div>
     </div>
 
-    <!-- Fallback se não tiver coordenadas -->
     <div v-else class="bg-gray-100 rounded-lg p-8 text-center border border-gray-200">
       <MapPin class="w-12 h-12 mx-auto mb-3 text-gray-400" />
       <p class="text-gray-600 mb-2">Localização não disponível</p>
@@ -63,7 +60,6 @@ const props = defineProps<{
 const mapContainer = ref<HTMLElement>()
 let map: L.Map | null = null
 
-// Ícone customizado para o marker
 const customIcon = L.divIcon({
   className: 'custom-marker',
   html: `
@@ -86,7 +82,6 @@ const customIcon = L.divIcon({
   iconAnchor: [16, 32],
 })
 
-// URL para abrir no Google Maps
 const googleMapsUrl = computed(() => {
   if (!props.latitude || !props.longitude) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(props.address)}`
@@ -108,7 +103,6 @@ function initMap() {
   }
 
   try {
-    // Criar mapa pequeno e não interativo (para ficar como "estático")
     map = L.map(mapContainer.value, {
       center: [props.latitude, props.longitude],
       zoom: props.zoom || 16,
@@ -121,13 +115,11 @@ function initMap() {
 
     console.log('StaticMap - Mapa criado com sucesso')
 
-    // Adicionar tiles do OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 19,
     }).addTo(map)
 
-    // Adicionar marker
     L.marker([props.latitude, props.longitude], {
       icon: customIcon,
       interactive: false,
@@ -141,11 +133,9 @@ function initMap() {
 
 onMounted(() => {
   if (props.latitude && props.longitude) {
-    // Delay para garantir que o container está renderizado
     setTimeout(() => {
       initMap()
 
-      // Invalidate size após inicialização para forçar re-render
       if (map) {
         setTimeout(() => {
           map?.invalidateSize()
@@ -182,15 +172,26 @@ onUnmounted(() => {
   position: relative;
 }
 
+/* FIX: Garantir que o mapa fique ABAIXO de modais, dialogs e headers */
 :deep(.leaflet-container) {
   height: 100% !important;
   width: 100% !important;
   border-radius: 12px;
+  z-index: 1 !important;
+}
+
+:deep(.leaflet-pane) {
+  z-index: 1 !important;
+}
+
+:deep(.leaflet-control) {
+  z-index: 2 !important;
 }
 
 :deep(.leaflet-control-attribution) {
   font-size: 9px;
   background: rgba(255, 255, 255, 0.7);
+  z-index: 2 !important;
 }
 
 :deep(.leaflet-tile-pane) {

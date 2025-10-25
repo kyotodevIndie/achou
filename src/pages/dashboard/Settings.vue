@@ -1,4 +1,3 @@
-<!-- src/pages/dashboard/Settings.vue -->
 <template>
   <div class="container mx-auto p-4">
     <div class="mb-6">
@@ -11,7 +10,6 @@
     </div>
 
     <div class="max-w-4xl mx-auto space-y-8">
-      <!-- Informações da Conta -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <h2 class="text-xl font-semibold mb-6">Informações da Conta</h2>
 
@@ -34,10 +32,8 @@
         </div>
       </div>
 
-      <!-- Alterar Senha -->
       <ChangePassword />
 
-      <!-- Preferências de Notificação -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <h3 class="text-lg font-semibold mb-6">Notificações</h3>
 
@@ -89,7 +85,6 @@
         </div>
       </div>
 
-      <!-- Privacidade -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <h3 class="text-lg font-semibold mb-6">Privacidade</h3>
 
@@ -128,7 +123,6 @@
         </div>
       </div>
 
-      <!-- Zona de Perigo -->
       <div class="bg-white rounded-xl border border-red-200 p-6">
         <h3 class="text-lg font-semibold text-red-700 mb-6">Zona de Perigo</h3>
 
@@ -148,7 +142,6 @@
       </div>
     </div>
 
-    <!-- Modal de Confirmação de Exclusão -->
     <div
       v-if="showDeleteModal"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -205,7 +198,6 @@ import { Input } from '@/components/ui/input'
 import { CheckCircle, Trash2 } from 'lucide-vue-next'
 import { reactive, ref } from 'vue'
 
-// Mock data - em produção, pegar do auth store
 const userEmail = ref('usuario@exemplo.com')
 const memberSince = ref('2024-01-15')
 
@@ -230,13 +222,10 @@ async function saveNotifications() {
   savingNotifications.value = true
 
   try {
-    // Simular chamada API
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    // TODO: Salvar no backend
     console.log('Notificações salvas:', notifications)
 
-    // Feedback visual
     alert('Preferências salvas com sucesso!')
   } catch (error) {
     console.error('Erro ao salvar notificações:', error)
@@ -250,13 +239,10 @@ async function savePrivacy() {
   savingPrivacy.value = true
 
   try {
-    // Simular chamada API
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    // TODO: Salvar no backend
     console.log('Configurações de privacidade salvas:', privacy)
 
-    // Feedback visual
     alert('Configurações salvas com sucesso!')
   } catch (error) {
     console.error('Erro ao salvar privacidade:', error)
@@ -270,15 +256,11 @@ async function handleDeleteAccount() {
   deletingAccount.value = true
 
   try {
-    // Simular exclusão
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    // TODO: Chamar API de exclusão
     console.log('Conta excluída')
 
-    // Redirecionar para home
     alert('Conta excluída com sucesso. Sentiremos sua falta!')
-    // router.push('/')
   } catch (error) {
     console.error('Erro ao excluir conta:', error)
     alert('Erro ao excluir conta. Tente novamente.')

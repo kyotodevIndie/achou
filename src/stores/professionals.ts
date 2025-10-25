@@ -1,4 +1,4 @@
-// src/stores/professionals.ts - Store completo com busca avançada E FOTOS
+// src/stores/professionals.ts - Store completo com busca avançada E FOTOS + RATINGS
 import { supabase } from '@/services/api'
 import type { AdvancedSearchParams, Professional, SearchParams, UserLocation } from '@/types'
 import { defineStore } from 'pinia'
@@ -55,7 +55,9 @@ export const useProfessionalsStore = defineStore('professionals', () => {
             photo_url,
             is_primary,
             order_index
-          )
+          ),
+          rating,
+          review_count
         `,
         )
         .eq('is_active', true) // ✅ APENAS PROFISSIONAIS ATIVOS
@@ -133,11 +135,39 @@ export const useProfessionalsStore = defineStore('professionals', () => {
 
       let results = data || []
 
-      // Processar fotos para cada profissional
-      results = results.map((prof) => ({
-        ...prof,
-        photos: prof.professional_photos || [],
-      }))
+      // Buscar ratings para cada profissional
+      if (results.length > 0) {
+        const professionalIds = results.map((p) => p.id)
+
+        const { data: reviewsData } = await supabase
+          .from('reviews')
+          .select('professional_id, rating')
+          .in('professional_id', professionalIds)
+          .eq('status', 'approved') // Apenas reviews aprovadas
+
+        // Calcular média de rating para cada profissional
+        const ratingsMap = new Map<string, { rating: number; count: number }>()
+
+        if (reviewsData) {
+          reviewsData.forEach((review) => {
+            const current = ratingsMap.get(review.professional_id) || { rating: 0, count: 0 }
+            current.rating += review.rating
+            current.count += 1
+            ratingsMap.set(review.professional_id, current)
+          })
+        }
+
+        // Processar fotos e ratings para cada profissional
+        results = results.map((prof) => {
+          const reviewStats = ratingsMap.get(prof.id)
+          return {
+            ...prof,
+            photos: prof.professional_photos || [],
+            rating: reviewStats ? reviewStats.rating / reviewStats.count : 0,
+            review_count: reviewStats ? reviewStats.count : 0,
+          }
+        })
+      }
 
       // Processamento pós-busca
       if (results.length > 0) {
@@ -197,6 +227,10 @@ export const useProfessionalsStore = defineStore('professionals', () => {
             // Boost para resposta rápida
             if (a.response_time === 'fast') scoreA += 3
             if (b.response_time === 'fast') scoreB += 3
+
+            // Boost por rating (novo)
+            if (a.rating > 0) scoreA += a.rating * 2
+            if (b.rating > 0) scoreB += b.rating * 2
 
             // Boost por proximidade (se há localização)
             if (params.userLocation && a.distance && b.distance) {
@@ -265,10 +299,29 @@ export const useProfessionalsStore = defineStore('professionals', () => {
 
       if (apiError) throw new Error(apiError.message)
 
-      // Processar fotos
+      // Buscar reviews do profissional
+      const { data: reviewsData } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('professional_id', id)
+        .eq('status', 'approved')
+
+      // Calcular rating médio
+      let rating = 0
+      let reviewCount = 0
+
+      if (reviewsData && reviewsData.length > 0) {
+        const totalRating = reviewsData.reduce((sum, review) => sum + review.rating, 0)
+        rating = totalRating / reviewsData.length
+        reviewCount = reviewsData.length
+      }
+
+      // Processar profissional
       const professional = {
         ...data,
         photos: data.professional_photos || [],
+        rating,
+        review_count: reviewCount,
       }
 
       // Calcular distância se há localização do usuário

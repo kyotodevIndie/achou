@@ -1,8 +1,6 @@
-<!-- src/components/search/AdvancedFilters.vue -->
 <template>
   <div class="bg-white border-b border-gray-200 sticky top-16 z-40">
     <div class="container mx-auto px-4 py-4">
-      <!-- Barra de busca principal -->
       <div class="flex gap-4 items-center mb-4">
         <div class="flex-1 relative">
           <Input
@@ -16,7 +14,6 @@
           />
         </div>
 
-        <!-- Geolocalização -->
         <Button
           @click="requestLocation"
           :disabled="gettingLocation"
@@ -29,16 +26,13 @@
           <span v-else>Usar localização</span>
         </Button>
 
-        <!-- Toggle filtros avançados -->
         <Button @click="showAdvanced = !showAdvanced" variant="outline" class="shrink-0">
           <SlidersHorizontal class="w-4 h-4 mr-2" />
           Filtros {{ showAdvanced ? 'simples' : 'avançados' }}
         </Button>
       </div>
 
-      <!-- Filtros Rápidos (sempre visíveis) -->
       <div v-if="!showAdvanced" class="space-y-3">
-        <!-- Chips de filtros ativos -->
         <div v-if="activeFiltersCount > 0" class="flex flex-wrap gap-2">
           <div
             v-for="filter in activeFilters"
@@ -55,7 +49,6 @@
           </Button>
         </div>
 
-        <!-- Filtros básicos em linha -->
         <div class="flex gap-3 flex-wrap items-center">
           <Select v-model="filters.categories[0]" @update:model-value="updateSearch">
             <SelectTrigger class="w-48">
@@ -97,7 +90,6 @@
             </SelectContent>
           </Select>
 
-          <!-- Distância (só se tem localização) -->
           <Select v-if="userLocation" v-model="selectedDistance" @update:model-value="updateSearch">
             <SelectTrigger class="w-36">
               <SelectValue placeholder="Distância" />
@@ -113,11 +105,8 @@
         </div>
       </div>
 
-      <!-- Filtros Avançados -->
       <div v-else class="space-y-4 border-t border-gray-100 pt-4">
-        <!-- Grid de filtros -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <!-- Categorias múltiplas -->
           <div>
             <label class="text-sm font-medium mb-2 block">Categorias</label>
             <div class="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2">
@@ -141,7 +130,6 @@
             </div>
           </div>
 
-          <!-- Localização -->
           <div>
             <label class="text-sm font-medium mb-2 block">Localização</label>
             <div class="space-y-2">
@@ -157,7 +145,6 @@
                 </SelectContent>
               </Select>
 
-              <!-- Bairros (só se Fortaleza) -->
               <div v-if="selectedCity === 'Fortaleza'" class="max-h-32 overflow-y-auto">
                 <div class="space-y-1">
                   <label
@@ -182,7 +169,6 @@
             </div>
           </div>
 
-          <!-- Preço -->
           <div>
             <label class="text-sm font-medium mb-2 block">
               Preço: R$ {{ filters.priceMin }} - R$ {{ filters.priceMax }}
@@ -217,7 +203,6 @@
             </div>
           </div>
 
-          <!-- Qualidade e Filtros Extras -->
           <div>
             <label class="text-sm font-medium mb-2 block">Filtros de Qualidade</label>
             <div class="space-y-2">
@@ -269,7 +254,6 @@
         </div>
       </div>
 
-      <!-- Ordenação e Resultados -->
       <div class="flex items-center justify-between pt-3 border-t border-gray-100">
         <div class="flex items-center gap-4">
           <span class="text-sm text-gray-600"> {{ resultsCount }} profissionais encontrados </span>
@@ -329,19 +313,16 @@ const props = defineProps<{
   resultsCount: number
 }>()
 
-// Estado dos filtros
 const searchQuery = ref('')
 const showAdvanced = ref(false)
 const gettingLocation = ref(false)
 const userLocation = ref<UserLocation | null>(null)
 
-// Filtros básicos (compatibilidade)
 const selectedCity = ref('')
 const selectedPriceRange = ref('')
 const selectedDistance = ref('')
 const selectedResponseTime = ref('')
 
-// Filtros avançados
 const filters = reactive<AdvancedSearchParams>({
   query: '',
   categories: [],
@@ -358,7 +339,6 @@ const filters = reactive<AdvancedSearchParams>({
   maxDistance: undefined,
 })
 
-// Computed
 const activeFilters = computed(() => {
   const active = []
 
@@ -423,7 +403,6 @@ const activeFilters = computed(() => {
 
 const activeFiltersCount = computed(() => activeFilters.value.length)
 
-// Métodos
 async function requestLocation() {
   if (!navigator.geolocation) {
     alert('Geolocalização não suportada pelo seu navegador')
@@ -437,7 +416,7 @@ async function requestLocation() {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 300000, // 5 minutos
+        maximumAge: 300000,
       })
     })
 
@@ -448,13 +427,11 @@ async function requestLocation() {
       timestamp: Date.now(),
     }
 
-    // Atualizar filtros com localização
     filters.userLocation = {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
     }
 
-    // Se não tem distância selecionada, usar 5km por padrão
     if (!selectedDistance.value || selectedDistance.value === 'all') {
       selectedDistance.value = '5'
       filters.maxDistance = 5
@@ -560,24 +537,20 @@ function updatePriceRange() {
 }
 
 function updateSearch() {
-  // Atualizar query
   filters.query = searchQuery.value
 
-  // Atualizar cidades
   if (selectedCity.value) {
     filters.cities = [selectedCity.value]
   } else {
     filters.cities = []
   }
 
-  // Atualizar distância
   if (selectedDistance.value && userLocation.value) {
     filters.maxDistance = parseInt(selectedDistance.value)
   } else {
     filters.maxDistance = undefined
   }
 
-  // Atualizar tempo de resposta
   if (selectedResponseTime.value) {
     filters.responseTime = [selectedResponseTime.value as 'fast' | 'medium' | 'slow']
   } else {
@@ -587,14 +560,11 @@ function updateSearch() {
   emit('search', { ...filters })
 }
 
-// Mock functions para contadores (implementar depois)
 function getCategoryCount(category: string): number {
-  // TODO: Implementar contagem real baseada nos dados
   return Math.floor(Math.random() * 10) + 1
 }
 
 function getNeighborhoodCount(neighborhood: string): number {
-  // TODO: Implementar contagem real baseada nos dados
   return Math.floor(Math.random() * 8) + 1
 }
 
@@ -602,7 +572,6 @@ const debouncedSearch = useDebounceFn(() => {
   updateSearch()
 }, 500)
 
-// Watchers
 watch(searchQuery, (newQuery) => {
   filters.query = newQuery
   debouncedSearch()

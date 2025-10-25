@@ -9,14 +9,12 @@
       <p class="text-muted-foreground">Acompanhe o desempenho do seu perfil</p>
     </div>
 
-    <!-- Loading -->
     <div v-if="loading" class="text-center py-12">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto mb-4"></div>
       <p class="text-gray-600">Carregando analytics...</p>
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Período Seletor -->
       <div class="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4">
         <h3 class="font-semibold">Período:</h3>
         <div class="flex gap-2">
@@ -25,6 +23,7 @@
             size="sm"
             :class="selectedPeriod === 7 ? 'bg-rose-50 border-rose-300' : ''"
             @click="changePeriod(7)"
+            :disabled="loadingPeriod"
           >
             7 dias
           </Button>
@@ -33,6 +32,7 @@
             size="sm"
             :class="selectedPeriod === 30 ? 'bg-rose-50 border-rose-300' : ''"
             @click="changePeriod(30)"
+            :disabled="loadingPeriod"
           >
             30 dias
           </Button>
@@ -41,77 +41,112 @@
             size="sm"
             :class="selectedPeriod === 90 ? 'bg-rose-50 border-rose-300' : ''"
             @click="changePeriod(90)"
+            :disabled="loadingPeriod"
           >
             90 dias
           </Button>
         </div>
       </div>
 
-      <!-- Métricas Principais -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card class="p-6">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold">Total de Visualizações</h3>
-            <Eye class="w-5 h-5 text-blue-600" />
+        <Card class="p-6 relative">
+          <div
+            v-if="loadingPeriod"
+            class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg z-10"
+          >
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
-          <p class="text-3xl font-bold text-blue-600 mb-1">{{ analytics.currentPeriod.views }}</p>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="font-medium" :class="viewsGrowth >= 0 ? 'text-green-600' : 'text-red-600'">
-              {{ viewsGrowth >= 0 ? '+' : '' }}{{ viewsGrowth }}%
-            </span>
-            <span class="text-muted-foreground">vs período anterior</span>
-          </div>
-        </Card>
-
-        <Card class="p-6">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold">Cliques no WhatsApp</h3>
-            <MessageCircle class="w-5 h-5 text-green-600" />
-          </div>
-          <p class="text-3xl font-bold text-green-600 mb-1">{{ analytics.currentPeriod.clicks }}</p>
-          <div class="flex items-center gap-2 text-sm">
-            <span
-              class="font-medium"
-              :class="clicksGrowth >= 0 ? 'text-green-600' : 'text-red-600'"
-            >
-              {{ clicksGrowth >= 0 ? '+' : '' }}{{ clicksGrowth }}%
-            </span>
-            <span class="text-muted-foreground">vs período anterior</span>
+          <div :class="{ 'opacity-50': loadingPeriod }">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-semibold">Total de Visualizações</h3>
+              <Eye class="w-5 h-5 text-blue-600" />
+            </div>
+            <p class="text-3xl font-bold text-blue-600 mb-1">{{ analytics.currentPeriod.views }}</p>
+            <div class="flex items-center gap-2 text-sm">
+              <span
+                class="font-medium"
+                :class="viewsGrowth >= 0 ? 'text-green-600' : 'text-red-600'"
+              >
+                {{ viewsGrowth >= 0 ? '+' : '' }}{{ viewsGrowth }}%
+              </span>
+              <span class="text-muted-foreground">vs período anterior</span>
+            </div>
           </div>
         </Card>
 
-        <Card class="p-6">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold">Taxa de Conversão</h3>
-            <TrendingUp class="w-5 h-5 text-purple-600" />
+        <Card class="p-6 relative">
+          <div
+            v-if="loadingPeriod"
+            class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg z-10"
+          >
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
           </div>
-          <p class="text-3xl font-bold text-purple-600 mb-1">{{ conversionRate }}%</p>
-          <div class="flex items-center gap-2 text-sm">
-            <span
-              class="font-medium"
-              :class="conversionGrowth >= 0 ? 'text-green-600' : 'text-red-600'"
-            >
-              {{ conversionGrowth >= 0 ? '+' : '' }}{{ Math.abs(conversionGrowth) }}pp
-            </span>
-            <span class="text-muted-foreground">vs período anterior</span>
+          <div :class="{ 'opacity-50': loadingPeriod }">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-semibold">Cliques no WhatsApp</h3>
+              <MessageCircle class="w-5 h-5 text-green-600" />
+            </div>
+            <p class="text-3xl font-bold text-green-600 mb-1">
+              {{ analytics.currentPeriod.clicks }}
+            </p>
+            <div class="flex items-center gap-2 text-sm">
+              <span
+                class="font-medium"
+                :class="clicksGrowth >= 0 ? 'text-green-600' : 'text-red-600'"
+              >
+                {{ clicksGrowth >= 0 ? '+' : '' }}{{ clicksGrowth }}%
+              </span>
+              <span class="text-muted-foreground">vs período anterior</span>
+            </div>
           </div>
         </Card>
 
-        <Card class="p-6">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold">Média Diária</h3>
-            <Calendar class="w-5 h-5 text-orange-600" />
+        <Card class="p-6 relative">
+          <div
+            v-if="loadingPeriod"
+            class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg z-10"
+          >
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
           </div>
-          <p class="text-3xl font-bold text-orange-600 mb-1">{{ dailyAverage }}</p>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="text-muted-foreground">visualizações por dia</span>
+          <div :class="{ 'opacity-50': loadingPeriod }">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-semibold">Taxa de Conversão</h3>
+              <TrendingUp class="w-5 h-5 text-purple-600" />
+            </div>
+            <p class="text-3xl font-bold text-purple-600 mb-1">{{ conversionRate }}%</p>
+            <div class="flex items-center gap-2 text-sm">
+              <span
+                class="font-medium"
+                :class="conversionGrowth >= 0 ? 'text-green-600' : 'text-red-600'"
+              >
+                {{ conversionGrowth >= 0 ? '+' : '' }}{{ Math.abs(conversionGrowth) }}pp
+              </span>
+              <span class="text-muted-foreground">vs período anterior</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card class="p-6 relative">
+          <div
+            v-if="loadingPeriod"
+            class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg z-10"
+          >
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+          </div>
+          <div :class="{ 'opacity-50': loadingPeriod }">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-semibold">Média Diária</h3>
+              <Calendar class="w-5 h-5 text-orange-600" />
+            </div>
+            <p class="text-3xl font-bold text-orange-600 mb-1">{{ dailyAverage }}</p>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-muted-foreground">visualizações por dia</span>
+            </div>
           </div>
         </Card>
       </div>
 
-      <!-- Detalhamento por Período -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Visualizações Detalhadas -->
         <Card class="p-6">
           <h3 class="font-semibold mb-4">Visualizações por Período</h3>
           <div class="space-y-3">
@@ -134,7 +169,6 @@
           </div>
         </Card>
 
-        <!-- Conversões Detalhadas -->
         <Card class="p-6">
           <h3 class="font-semibold mb-4">Contatos WhatsApp por Período</h3>
           <div class="space-y-3">
@@ -185,7 +219,6 @@
         </Card>
       </div>
 
-      <!-- Horários de Pico -->
       <Card class="p-6">
         <h3 class="font-semibold mb-4">Horários de Maior Visualização</h3>
         <div v-if="peakHours.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -203,7 +236,6 @@
         </div>
       </Card>
 
-      <!-- Insights e Recomendações -->
       <Card class="p-6">
         <h3 class="font-semibold mb-4">Insights e Recomendações</h3>
         <div class="space-y-4">
@@ -233,7 +265,6 @@
         </div>
       </Card>
 
-      <!-- Placeholder para Gráfico -->
       <Card class="p-6">
         <h3 class="font-semibold mb-4">Evolução ao Longo do Tempo</h3>
         <div class="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -260,8 +291,8 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Estados
 const loading = ref(true)
+const loadingPeriod = ref(false)
 const selectedPeriod = ref(30)
 const professionalId = ref<string | null>(null)
 
@@ -276,7 +307,6 @@ const analytics = ref({
 
 const peakHours = ref<Array<{ hour: number; count: number }>>([])
 
-// Computed
 const conversionRate = computed(() => {
   if (analytics.value.currentPeriod.views === 0) return 0
   return Math.round(
@@ -321,7 +351,6 @@ const dailyAverage = computed(() => {
 const insights = computed(() => {
   const insightsList = []
 
-  // Insight sobre conversão
   if (conversionRate.value > 25) {
     insightsList.push({
       type: 'positive',
@@ -338,7 +367,6 @@ const insights = computed(() => {
     })
   }
 
-  // Insight sobre crescimento
   if (viewsGrowth.value > 20) {
     insightsList.push({
       type: 'positive',
@@ -356,7 +384,6 @@ const insights = computed(() => {
     })
   }
 
-  // Insight sobre fotos
   if (analytics.value.total.views > 50 && conversionRate.value < 20) {
     insightsList.push({
       type: 'info',
@@ -369,7 +396,6 @@ const insights = computed(() => {
   return insightsList
 })
 
-// Carregar ID do profissional
 async function loadProfessionalId() {
   if (!authStore.user?.id) {
     router.push('/login')
@@ -393,7 +419,6 @@ async function loadProfessionalId() {
   }
 }
 
-// Carregar analytics por período
 async function loadAnalyticsByPeriod(days: number) {
   if (!professionalId.value) return { views: 0, clicks: 0 }
 
@@ -401,7 +426,6 @@ async function loadAnalyticsByPeriod(days: number) {
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
 
-    // Views
     const { data: views, error: viewsError } = await supabase
       .from('profile_views')
       .select('id')
@@ -410,7 +434,6 @@ async function loadAnalyticsByPeriod(days: number) {
 
     if (viewsError) throw viewsError
 
-    // Clicks
     const { data: clicks, error: clicksError } = await supabase
       .from('whatsapp_clicks')
       .select('id')
@@ -429,12 +452,10 @@ async function loadAnalyticsByPeriod(days: number) {
   }
 }
 
-// Carregar analytics totais
 async function loadTotalAnalytics() {
   if (!professionalId.value) return { views: 0, clicks: 0 }
 
   try {
-    // Views totais
     const { data: views, error: viewsError } = await supabase
       .from('profile_views')
       .select('id')
@@ -442,7 +463,6 @@ async function loadTotalAnalytics() {
 
     if (viewsError) throw viewsError
 
-    // Clicks totais
     const { data: clicks, error: clicksError } = await supabase
       .from('whatsapp_clicks')
       .select('id')
@@ -460,7 +480,6 @@ async function loadTotalAnalytics() {
   }
 }
 
-// Carregar horários de pico
 async function loadPeakHours() {
   if (!professionalId.value) return
 
@@ -476,7 +495,6 @@ async function loadPeakHours() {
 
     if (error) throw error
 
-    // Agrupar por hora
     const hourCounts: Record<number, number> = {}
 
     data?.forEach((view) => {
@@ -484,7 +502,6 @@ async function loadPeakHours() {
       hourCounts[hour] = (hourCounts[hour] || 0) + 1
     })
 
-    // Pegar top 4 horários
     peakHours.value = Object.entries(hourCounts)
       .map(([hour, count]) => ({ hour: parseInt(hour), count }))
       .sort((a, b) => b.count - a.count)
@@ -494,7 +511,6 @@ async function loadPeakHours() {
   }
 }
 
-// Carregar todos os analytics
 async function loadAllAnalytics() {
   loading.value = true
 
@@ -502,58 +518,21 @@ async function loadAllAnalytics() {
     const hasValidProfessional = await loadProfessionalId()
     if (!hasValidProfessional) return
 
-    // Carregar analytics por período
-    const [
-      currentPeriodData,
-      previousPeriodData,
-      last7DaysData,
-      last30DaysData,
-      last90DaysData,
-      totalData,
-    ] = await Promise.all([
-      loadAnalyticsByPeriod(selectedPeriod.value),
-      loadAnalyticsByPeriod(selectedPeriod.value * 2), // Período anterior para comparação
+    const [last7DaysData, last30DaysData, last90DaysData, totalData] = await Promise.all([
       loadAnalyticsByPeriod(7),
       loadAnalyticsByPeriod(30),
       loadAnalyticsByPeriod(90),
       loadTotalAnalytics(),
     ])
 
-    // Calcular período anterior correto
-    const previousStart = new Date()
-    previousStart.setDate(previousStart.getDate() - selectedPeriod.value * 2)
-    const previousEnd = new Date()
-    previousEnd.setDate(previousEnd.getDate() - selectedPeriod.value)
+    analytics.value.last7Days = last7DaysData
+    analytics.value.last30Days = last30DaysData
+    analytics.value.last90Days = last90DaysData
+    analytics.value.total = totalData
 
-    // Buscar dados do período anterior específico
-    const { data: previousViews } = await supabase
-      .from('profile_views')
-      .select('id')
-      .eq('professional_id', professionalId.value!)
-      .gte('created_at', previousStart.toISOString())
-      .lt('created_at', previousEnd.toISOString())
-
-    const { data: previousClicks } = await supabase
-      .from('whatsapp_clicks')
-      .select('id')
-      .eq('professional_id', professionalId.value!)
-      .gte('created_at', previousStart.toISOString())
-      .lt('created_at', previousEnd.toISOString())
-
-    analytics.value = {
-      currentPeriod: currentPeriodData,
-      previousPeriod: {
-        views: previousViews?.length || 0,
-        clicks: previousClicks?.length || 0,
-      },
-      last7Days: last7DaysData,
-      last30Days: last30DaysData,
-      last90Days: last90DaysData,
-      total: totalData,
-    }
-
-    // Carregar horários de pico
     await loadPeakHours()
+
+    await updateCurrentPeriod()
   } catch (err) {
     console.error('Erro ao carregar analytics:', err)
   } finally {
@@ -561,13 +540,53 @@ async function loadAllAnalytics() {
   }
 }
 
-// Mudar período
-async function changePeriod(days: number) {
-  selectedPeriod.value = days
-  await loadAllAnalytics()
+async function updateCurrentPeriod() {
+  if (!professionalId.value) return
+
+  loadingPeriod.value = true
+
+  try {
+    const currentStart = new Date()
+    currentStart.setDate(currentStart.getDate() - selectedPeriod.value)
+
+    const previousStart = new Date()
+    previousStart.setDate(previousStart.getDate() - selectedPeriod.value * 2)
+    const previousEnd = new Date()
+    previousEnd.setDate(previousEnd.getDate() - selectedPeriod.value)
+
+    const currentPeriodData = await loadAnalyticsByPeriod(selectedPeriod.value)
+
+    const { data: previousViews } = await supabase
+      .from('profile_views')
+      .select('id')
+      .eq('professional_id', professionalId.value)
+      .gte('created_at', previousStart.toISOString())
+      .lt('created_at', previousEnd.toISOString())
+
+    const { data: previousClicks } = await supabase
+      .from('whatsapp_clicks')
+      .select('id')
+      .eq('professional_id', professionalId.value)
+      .gte('created_at', previousStart.toISOString())
+      .lt('created_at', previousEnd.toISOString())
+
+    analytics.value.currentPeriod = currentPeriodData
+    analytics.value.previousPeriod = {
+      views: previousViews?.length || 0,
+      clicks: previousClicks?.length || 0,
+    }
+  } catch (err) {
+    console.error('Erro ao atualizar período atual:', err)
+  } finally {
+    loadingPeriod.value = false
+  }
 }
 
-// Helper para calcular taxa de conversão
+async function changePeriod(days: number) {
+  selectedPeriod.value = days
+  await updateCurrentPeriod()
+}
+
 function getConversionRate(clicks: number, views: number): number {
   if (views === 0) return 0
   return Math.round((clicks / views) * 100)

@@ -1,4 +1,3 @@
-<!-- src/pages/auth/Login.vue - Versão completa -->
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
@@ -16,7 +15,6 @@
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
         <form @submit.prevent="handleSubmit" class="space-y-6">
-          <!-- Nome (só no cadastro) -->
           <div v-if="!isLogin">
             <label for="name" class="block text-sm font-medium text-gray-700">
               Nome completo
@@ -33,7 +31,6 @@
             </div>
           </div>
 
-          <!-- Email -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700"> Email </label>
             <div class="mt-1">
@@ -48,7 +45,6 @@
             </div>
           </div>
 
-          <!-- Senha -->
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700"> Senha </label>
             <div class="mt-1">
@@ -63,12 +59,10 @@
             </div>
           </div>
 
-          <!-- Erro -->
           <div v-if="error" class="bg-red-50 border border-red-200 p-3 rounded-md">
             <p class="text-sm text-red-600">{{ error }}</p>
           </div>
 
-          <!-- Submit -->
           <div>
             <Button type="submit" :disabled="loading" class="w-full bg-rose-500 hover:bg-rose-600">
               <div v-if="loading" class="flex items-center justify-center gap-2">
@@ -81,14 +75,12 @@
             </Button>
           </div>
 
-          <!-- Esqueci a senha (só no login) -->
           <div v-if="isLogin" class="text-center">
             <router-link to="/esqueci-senha" class="text-sm text-gray-600 hover:text-gray-500">
               Esqueceu sua senha?
             </router-link>
           </div>
 
-          <!-- Toggle -->
           <div class="text-center">
             <button
               type="button"
@@ -100,7 +92,6 @@
           </div>
         </form>
 
-        <!-- Info adicional -->
         <div v-if="!isLogin" class="mt-6 border-t border-gray-200 pt-6">
           <div class="text-sm text-gray-600 space-y-2">
             <p class="font-medium">✓ 7 dias grátis para testar</p>
@@ -118,17 +109,17 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuthStore } from '@/stores/auth'
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const isLogin = ref(true)
 const loading = ref(false)
 const error = ref('')
 
-// Form data como objeto simples
 const form = reactive({
   name: '',
   email: '',
@@ -138,18 +129,36 @@ const form = reactive({
 function toggleMode() {
   isLogin.value = !isLogin.value
   error.value = ''
-  // Limpar formulário
   form.name = ''
   form.email = ''
   form.password = ''
+
+  // Atualizar URL
+  router.replace({ query: { mode: isLogin.value ? 'login' : 'signup' } })
 }
+
+// Observar mudanças na query da URL
+watch(
+  () => route.query.mode,
+  (newMode) => {
+    if (newMode === 'signup') {
+      isLogin.value = false
+    } else if (newMode === 'login') {
+      isLogin.value = true
+    }
+    // Limpar formulário ao trocar de modo
+    error.value = ''
+    form.name = ''
+    form.email = ''
+    form.password = ''
+  },
+)
 
 async function handleSubmit() {
   loading.value = true
   error.value = ''
 
   try {
-    // Validações básicas
     if (!form.email || !form.password) {
       throw new Error('Email e senha são obrigatórios')
     }
@@ -163,15 +172,11 @@ async function handleSubmit() {
     }
 
     if (isLogin.value) {
-      // Login - enviar apenas email e password como strings
       await authStore.signIn(form.email.trim(), form.password)
-      // Sucesso - redirecionar
       router.push('/dashboard')
     } else {
-      // Cadastro - enviar apenas email e password como strings
       await authStore.signUp(form.email.trim(), form.password)
 
-      // Após cadastro, redirecionar para página de confirmação com email na URL
       router.push({
         path: '/confirmar-email',
         query: { email: form.email.trim() },
@@ -180,14 +185,12 @@ async function handleSubmit() {
   } catch (err) {
     console.error('Erro na autenticação:', err)
 
-    // Detectar erro de email não confirmado
     if (err instanceof Error) {
       if (
         err.message.includes('Email not confirmed') ||
         err.message.includes('email_not_confirmed') ||
         err.message.includes('not confirmed')
       ) {
-        // Redirecionar para página de confirmação
         router.push({
           path: '/confirmar-email',
           query: { email: form.email.trim() },
@@ -195,7 +198,6 @@ async function handleSubmit() {
         return
       }
 
-      // Outros erros comuns
       if (err.message.includes('Invalid login credentials')) {
         error.value = 'Email ou senha incorretos'
       } else if (err.message.includes('User already registered')) {
@@ -216,4 +218,12 @@ async function handleSubmit() {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  // Detectar modo pela URL
+  const mode = route.query.mode as string
+  if (mode === 'signup') {
+    isLogin.value = false
+  }
+})
 </script>

@@ -19,8 +19,7 @@ interface ReviewData {
 
 async function verifyCaptcha(token: string, ip: string): Promise<boolean> {
   try {
-    console.log('🔐 Verificando captcha...', { token: token.substring(0, 20), ip })
-
+    console.log('🔐 Verificando captcha...')
     const HCAPTCHA_SECRET = process.env.HCAPTCHA_SECRET_KEY
 
     const response = await fetch('https://hcaptcha.com/siteverify', {
@@ -41,74 +40,6 @@ async function verifyCaptcha(token: string, ip: string): Promise<boolean> {
   } catch (error) {
     console.error('❌ Erro ao verificar captcha:', error)
     return false
-  }
-}
-
-async function checkIPLimit(
-  professionalId: string,
-  ip: string,
-): Promise<{ allowed: boolean; message?: string }> {
-  try {
-    const twentyFourHoursAgo = new Date()
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
-
-    console.log('🔍 Verificando limite de IP...', { professionalId, ip })
-
-    const { data, error } = await supabase
-      .from('review_ips')
-      .select('created_at')
-      .eq('professional_id', professionalId)
-      .eq('ip_address', ip)
-      .gte('created_at', twentyFourHoursAgo.toISOString())
-
-    if (error) {
-      console.error('❌ Erro ao verificar IP:', error)
-      throw error
-    }
-
-    console.log('📊 Reviews encontradas para este IP:', data?.length || 0)
-
-    if (data && data.length > 0) {
-      return {
-        allowed: false,
-        message: 'Você já avaliou este profissional recentemente. Aguarde 24 horas.',
-      }
-    }
-
-    const { data: allReviews, error: allError } = await supabase
-      .from('review_ips')
-      .select('id')
-      .eq('ip_address', ip)
-      .gte('created_at', twentyFourHoursAgo.toISOString())
-
-    if (allError) throw allError
-
-    console.log('📊 Total de reviews deste IP hoje:', allReviews?.length || 0)
-
-    if (allReviews && allReviews.length >= 5) {
-      return {
-        allowed: false,
-        message: 'Limite de avaliações diário atingido. Tente novamente amanhã.',
-      }
-    }
-
-    return { allowed: true }
-  } catch (error) {
-    console.error('❌ Erro ao verificar limite IP:', error)
-    return { allowed: true }
-  }
-}
-
-async function saveIPTracking(professionalId: string, ip: string) {
-  try {
-    console.log('💾 Salvando tracking de IP...')
-    await supabase.from('review_ips').insert({
-      professional_id: professionalId,
-      ip_address: ip,
-    })
-    console.log('✅ IP tracking salvo')
-  } catch (error) {
-    console.error('❌ Erro ao salvar tracking IP:', error)
   }
 }
 
@@ -159,6 +90,7 @@ export const handler: Handler = async (event) => {
       captchaToken: data.captchaToken?.substring(0, 20),
     })
 
+    // Validar dados
     const validation = validateReviewData(data)
     if (!validation.valid) {
       console.log('❌ Validação falhou:', validation.errors)
@@ -171,11 +103,12 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Obter IP do usuário
     const ip =
       event.headers['x-forwarded-for']?.split(',')[0] || event.headers['x-real-ip'] || 'localhost'
-
     console.log('🌐 IP do usuário:', ip)
 
+    // Verificar captcha
     const captchaValid = await verifyCaptcha(data.captchaToken, ip)
     if (!captchaValid) {
       console.log('❌ Captcha inválido')
@@ -185,15 +118,7 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    const ipCheck = await checkIPLimit(data.professional_id, ip)
-    if (!ipCheck.allowed) {
-      console.log('❌ Limite de IP atingido')
-      return {
-        statusCode: 429,
-        body: JSON.stringify({ error: ipCheck.message }),
-      }
-    }
-
+    // Criar review no banco
     console.log('💾 Criando review no banco...')
     const { data: review, error: reviewError } = await supabase
       .from('reviews')
@@ -214,7 +139,27 @@ export const handler: Handler = async (event) => {
 
     console.log('✅ Review criada:', review.id)
 
-    await saveIPTracking(data.professional_id, ip)
+    // Atualizar rating do profissional
+    console.log('📊 Atualizando rating do profissional...')
+    const { data: allReviews } = await supabase
+      .from('reviews')
+      .select('rating')
+      .eq('professional_id', data.professional_id)
+
+    if (allReviews && allReviews.length > 0) {
+      const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0)
+      const avgRating = totalRating / allReviews.length
+
+      await supabase
+        .from('professionals')
+        .update({
+          rating: avgRating,
+          review_count: allReviews.length,
+        })
+        .eq('id', data.professional_id)
+
+      console.log(`✅ Rating atualizado: ${avgRating.toFixed(2)} (${allReviews.length} reviews)`)
+    }
 
     return {
       statusCode: 201,

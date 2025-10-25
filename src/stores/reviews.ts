@@ -1,4 +1,4 @@
-// src/stores/reviews.ts - VERSÃO CORRIGIDA
+// src/stores/reviews.ts - COM ATUALIZAÇÃO DE RATING
 import { supabase } from '@/services/api'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -10,6 +10,7 @@ export interface Review {
   rating: number
   comment: string | null
   created_at: string
+  status?: string
 }
 
 export interface CreateReviewData {
@@ -26,7 +27,48 @@ export const useReviewsStore = defineStore('reviews', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Buscar reviews de um profissional
+  // Função para recalcular e atualizar rating do profissional
+  async function updateProfessionalRating(professionalId: string) {
+    try {
+      // Buscar todas as reviews aprovadas do profissional
+      const { data: approvedReviews, error: reviewsError } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('professional_id', professionalId)
+        .eq('status', 'approved')
+
+      if (reviewsError) throw reviewsError
+
+      let rating = 0
+      let reviewCount = 0
+
+      if (approvedReviews && approvedReviews.length > 0) {
+        const totalRating = approvedReviews.reduce((sum, review) => sum + review.rating, 0)
+        rating = totalRating / approvedReviews.length
+        reviewCount = approvedReviews.length
+      }
+
+      // Atualizar tabela professionals com rating e review_count
+      const { error: updateError } = await supabase
+        .from('professionals')
+        .update({
+          rating: rating,
+          review_count: reviewCount,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', professionalId)
+
+      if (updateError) throw updateError
+
+      console.log(
+        `Rating atualizado para profissional ${professionalId}: ${rating.toFixed(2)} (${reviewCount} reviews)`,
+      )
+    } catch (err) {
+      console.error('Erro ao atualizar rating do profissional:', err)
+    }
+  }
+
+  // Buscar reviews de um profissional (apenas aprovadas para exibição)
   async function getReviews(professionalId: string) {
     loading.value = true
     error.value = null
@@ -34,8 +76,9 @@ export const useReviewsStore = defineStore('reviews', () => {
     try {
       const { data, error: apiError } = await supabase
         .from('reviews')
-        .select('id, professional_id, user_name, rating, comment, created_at')
+        .select('id, professional_id, user_name, rating, comment, created_at, status')
         .eq('professional_id', professionalId)
+        .eq('status', 'approved') // Apenas reviews aprovadas
         .order('created_at', { ascending: false })
 
       if (apiError) throw new Error(apiError.message)
@@ -51,7 +94,7 @@ export const useReviewsStore = defineStore('reviews', () => {
     }
   }
 
-  // ⭐ CRIAR REVIEW VIA NETLIFY FUNCTION (NÃO INSERIR DIRETO NO SUPABASE)
+  // Criar review via Netlify Function
   async function createReview(reviewData: CreateReviewData) {
     loading.value = true
     error.value = null
@@ -59,7 +102,7 @@ export const useReviewsStore = defineStore('reviews', () => {
     try {
       console.log('Enviando review para Netlify Function...', reviewData)
 
-      // ⭐ CHAMAR NETLIFY FUNCTION
+      // Chamar Netlify Function
       const response = await fetch('/.netlify/functions/create-review', {
         method: 'POST',
         headers: {
@@ -75,9 +118,12 @@ export const useReviewsStore = defineStore('reviews', () => {
         throw new Error(result.error || 'Erro ao criar avaliação')
       }
 
-      // Adicionar a nova review à lista
-      if (result.review) {
+      // Adicionar a nova review à lista (se aprovada automaticamente)
+      if (result.review && result.review.status === 'approved') {
         reviews.value.unshift(result.review)
+
+        // Atualizar rating do profissional
+        await updateProfessionalRating(reviewData.professional_id)
       }
 
       return result.review
@@ -90,7 +136,7 @@ export const useReviewsStore = defineStore('reviews', () => {
     }
   }
 
-  // Calcular média de reviews
+  // Calcular média de reviews (auxiliar)
   function getAverageRating(professionalReviews?: Review[]): number {
     const reviewsToUse = professionalReviews || reviews.value
     if (reviewsToUse.length === 0) return 0
@@ -99,7 +145,7 @@ export const useReviewsStore = defineStore('reviews', () => {
     return sum / reviewsToUse.length
   }
 
-  // Contar reviews
+  // Contar reviews (auxiliar)
   function getReviewCount(professionalReviews?: Review[]): number {
     const reviewsToUse = professionalReviews || reviews.value
     return reviewsToUse.length
@@ -111,6 +157,7 @@ export const useReviewsStore = defineStore('reviews', () => {
     error,
     getReviews,
     createReview,
+    updateProfessionalRating,
     getAverageRating,
     getReviewCount,
   }

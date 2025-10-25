@@ -1,64 +1,254 @@
-<!-- src/pages/Home.vue - Dark mode com Tailwind 4 -->
 <template>
-  <div class="min-h-screen bg-white dark:bg-gray-900">
-    <!-- Hero Section -->
-    <section class="hero-gradient py-20">
-      <div class="container mx-auto px-4 text-center">
-        <h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-6">
-          Encontre profissionais com <span class="text-rose-500">sala comercial</span>
-        </h1>
-        <p class="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-          Conectamos você com profissionais sérios que possuem estrutura física adequada para
-          atendê-lo
-        </p>
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <!-- Hero Section com Imagem de Fundo -->
+    <section class="relative overflow-hidden min-h-[600px] flex items-center">
+      <!-- Background com imagem -->
+      <div class="absolute inset-0">
+        <img
+          src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80"
+          alt="Business Building"
+          class="w-full h-full object-cover"
+          :style="{ transform: `translateY(${scrollY * 0.3}px)` }"
+        />
+        <div
+          class="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/85 to-gray-900/70"
+        ></div>
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-gray-900/50"
+        ></div>
+      </div>
 
-        <!-- Barra de Busca -->
-        <div class="max-w-2xl mx-auto mb-8">
-          <div class="flex gap-2 theme-card rounded-lg shadow-lg p-2">
-            <Input
-              v-model="searchQuery"
-              placeholder="Buscar profissional, complexo, categoria..."
-              class="flex-1 border-0 text-lg theme-input"
-              @keyup.enter="handleSearch"
-            />
-            <Button
-              size="lg"
-              @click="handleSearch"
-              :disabled="loading"
-              class="px-8 theme-button text-white"
+      <div class="relative container mx-auto px-4 py-24">
+        <div class="text-center space-y-8 animate-fade-in max-w-4xl mx-auto">
+          <!-- Título Principal -->
+          <h1 class="text-5xl md:text-7xl font-bold text-white leading-tight drop-shadow-2xl">
+            Conecte-se aos
+            <span
+              class="bg-gradient-to-r from-rose-400 via-pink-400 to-rose-500 bg-clip-text text-transparent"
             >
-              <Search class="w-5 h-5 mr-2" />
-              Buscar
-            </Button>
-          </div>
-          <p class="text-sm text-muted-foreground mt-2">
-            Busque por nome, profissão, complexo ou endereço
+              melhores profissionais
+            </span>
+            em um só lugar
+          </h1>
+
+          <p
+            class="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed drop-shadow-lg"
+          >
+            Uma plataforma intuitiva que conecta você aos melhores profissionais nos empreendimentos
+            comerciais, facilitando sua busca e economizando seu tempo
           </p>
+
+          <!-- Barra de Busca Premium -->
+          <div class="max-w-2xl mx-auto mt-8">
+            <div class="relative group">
+              <div
+                class="absolute inset-0 bg-gradient-to-r from-rose-500 to-pink-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"
+              ></div>
+              <div
+                class="relative flex items-center gap-3 bg-white rounded-2xl shadow-2xl p-3 border border-gray-200 hover:border-rose-300 transition-all"
+              >
+                <Search class="w-6 h-6 text-gray-400 ml-2" />
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Buscar profissional, complexo, categoria..."
+                  class="flex-1 text-lg outline-none px-2 bg-transparent"
+                  @keyup.enter="handleSearch"
+                />
+                <button
+                  @click="handleSearch"
+                  :disabled="loading"
+                  class="bg-gradient-to-r from-rose-500 to-pink-600 text-white px-8 py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                >
+                  <span>Buscar</span>
+                  <ArrowRight class="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <p class="text-sm text-gray-300 mt-3 mb-4">
+              Busque por nome, profissão, complexo ou endereço
+            </p>
+
+            <!-- Filtros Rápidos -->
+            <div v-if="loadingFilters" class="flex justify-center mt-6">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+            </div>
+            <div
+              v-else-if="quickFilters.length > 0"
+              class="flex flex-wrap justify-center gap-3 mt-6"
+            >
+              <button
+                v-for="filter in quickFilters"
+                :key="filter.search_term"
+                @click="searchByCategory(filter.search_term)"
+                class="bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 hover:border-white/40 text-white px-5 py-2.5 rounded-xl font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2 shadow-lg"
+              >
+                <span>{{ filter.search_term }}</span>
+                <span
+                  v-if="filter.total_searches > 0"
+                  class="text-xs text-white/70 bg-white/10 px-2 py-0.5 rounded-full"
+                >
+                  {{ filter.total_searches }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Features rápidas -->
+          <div class="flex flex-wrap justify-center gap-6 mt-12">
+            <div
+              v-for="(feature, i) in features"
+              :key="i"
+              class="flex items-center gap-2 text-gray-200"
+            >
+              <component :is="feature.icon" class="w-5 h-5 text-rose-400" />
+              <span class="text-sm font-medium">{{ feature.text }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Complexos em Destaque - CARROSSEL PREMIUM -->
+    <section class="py-20 bg-gradient-to-br from-gray-50 to-white">
+      <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between mb-12">
+          <div>
+            <h2 class="text-4xl font-bold text-gray-900 mb-2">Complexos em Destaque</h2>
+            <p class="text-gray-600">Estruturas profissionais de alta qualidade</p>
+          </div>
+          <div class="flex gap-3">
+            <button
+              @click="scrollCarousel('left')"
+              :disabled="!canScrollLeft"
+              class="w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+            >
+              <ChevronLeft class="w-6 h-6 text-gray-700" />
+            </button>
+            <button
+              @click="scrollCarousel('right')"
+              :disabled="!canScrollRight"
+              class="w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+            >
+              <ChevronRight class="w-6 h-6 text-gray-700" />
+            </button>
+          </div>
         </div>
 
-        <!-- Categorias Rápidas -->
-        <div class="flex justify-center gap-3 flex-wrap max-w-4xl mx-auto">
-          <Button
-            v-for="category in popularCategories"
-            :key="category.value"
-            variant="outline"
-            @click="searchByCategory(category.value)"
-            class="mb-2 text-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+        <div v-if="loadingComplexes" class="text-center py-8">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto mb-4"
+          ></div>
+          <p class="text-muted-foreground">Carregando complexos...</p>
+        </div>
+
+        <div v-else-if="featuredComplexes.length === 0" class="text-center py-8">
+          <div class="text-6xl mb-4">🏢</div>
+          <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
+            Nenhum complexo cadastrado ainda
+          </h3>
+          <p class="text-muted-foreground">Em breve teremos complexos comerciais cadastrados!</p>
+        </div>
+
+        <div v-else class="relative">
+          <div
+            ref="carouselRef"
+            class="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pb-4"
+            @scroll="updateScrollButtons"
           >
-            {{ category.icon }} {{ category.label }}
-          </Button>
+            <div
+              v-for="(complex, i) in featuredComplexes"
+              :key="complex.id"
+              @click="searchByComplex(complex.name)"
+              class="flex-shrink-0 w-80 snap-start group cursor-pointer"
+              :style="{ animation: `slideUp 0.5s ease-out ${i * 0.1}s both` }"
+            >
+              <div
+                class="relative bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 group-hover:border-rose-300 h-full group-hover:-translate-y-2"
+              >
+                <!-- Imagem -->
+                <div
+                  class="relative h-52 bg-gradient-to-br from-rose-400 via-pink-400 to-rose-500 overflow-hidden"
+                >
+                  <img
+                    v-if="complex.photo_url"
+                    :src="complex.photo_url"
+                    :alt="complex.name"
+                    class="w-full h-full object-cover"
+                  />
+                  <div
+                    v-else
+                    class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-all"
+                  ></div>
+                  <div
+                    v-if="!complex.photo_url"
+                    class="absolute inset-0 flex items-center justify-center"
+                  >
+                    <span
+                      class="text-white text-7xl font-bold opacity-50 group-hover:scale-110 transition-transform"
+                    >
+                      {{ complex.name.charAt(0) }}
+                    </span>
+                  </div>
+
+                  <!-- Badge flutuante -->
+                  <div class="absolute top-4 right-4">
+                    <div class="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-xl">
+                      <span
+                        class="text-sm font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent"
+                      >
+                        {{ complex.count }}
+                        {{ complex.count === 1 ? 'profissional' : 'profissionais' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Conteúdo -->
+                <div class="p-6">
+                  <h3
+                    class="text-xl font-bold text-gray-900 mb-3 group-hover:text-rose-600 transition-colors"
+                  >
+                    {{ complex.name }}
+                  </h3>
+                  <div class="flex items-center gap-2 text-gray-600">
+                    <MapPin class="w-4 h-4 text-rose-500" />
+                    <span class="text-sm font-medium">{{ complex.city }}</span>
+                  </div>
+
+                  <div class="mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex items-center justify-between text-sm">
+                      <span class="text-gray-500">Ver profissionais</span>
+                      <ArrowRight
+                        class="w-4 h-4 text-rose-500 group-hover:translate-x-1 transition-transform"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-8">
+          <button
+            @click="$router.push('/buscar')"
+            class="bg-gradient-to-r from-rose-500 to-pink-600 text-white px-10 py-4 rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all duration-200 text-lg"
+          >
+            Ver Todos os Complexos
+          </button>
         </div>
       </div>
     </section>
 
     <!-- Profissionais em Destaque -->
-    <section class="py-16 bg-white dark:bg-gray-900">
+    <section class="py-20 bg-white">
       <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">
-          Profissionais em Destaque
-        </h2>
+        <div class="text-center mb-16">
+          <h2 class="text-4xl font-bold text-gray-900 mb-3">Profissionais em Destaque</h2>
+          <p class="text-xl text-gray-600">Os melhores avaliados pela comunidade</p>
+        </div>
 
-        <!-- Loading -->
         <div v-if="loading" class="text-center py-8">
           <div
             class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto mb-4"
@@ -66,92 +256,113 @@
           <p class="text-muted-foreground">Carregando profissionais...</p>
         </div>
 
-        <!-- Erro -->
         <div v-else-if="error" class="text-center py-8">
           <div class="theme-card p-6 rounded-lg max-w-md mx-auto">
             <h3 class="font-bold text-red-600 dark:text-red-400 mb-2">⚠️ Erro de Conexão</h3>
             <p class="text-red-600 dark:text-red-400 text-sm mb-4">{{ error }}</p>
-            <Button
+            <button
               @click="retryLoad"
-              variant="outline"
-              class="border-red-300 dark:border-red-600 text-red-600 dark:text-red-400"
+              class="border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg"
             >
               Tentar novamente
-            </Button>
+            </button>
           </div>
         </div>
 
-        <!-- Empty State -->
         <div v-else-if="featuredProfessionals.length === 0" class="text-center py-8">
           <div class="text-6xl mb-4">🏢</div>
           <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
             Nenhum profissional encontrado
           </h3>
           <p class="text-muted-foreground mb-6">Seja o primeiro a se cadastrar na sua região!</p>
-          <Button class="theme-button text-white"> Cadastre-se como profissional </Button>
+          <button
+            @click="$router.push('/cadastro')"
+            class="bg-gradient-to-r from-rose-500 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold"
+          >
+            Cadastre-se como profissional
+          </button>
         </div>
 
-        <!-- Grid de Profissionais -->
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <ProfessionalCard
-            v-for="professional in featuredProfessionals"
-            :key="professional.id"
-            :professional="professional"
-            @view-profile="goToProfile"
-          />
+        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div
+            v-for="(prof, i) in limitedProfessionals"
+            :key="prof.id"
+            class="group cursor-pointer"
+            :style="{ animation: `slideUp 0.6s ease-out ${i * 0.15}s both` }"
+            @click="goToProfile(prof.id)"
+          >
+            <div
+              class="relative bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 group-hover:border-rose-300 group-hover:-translate-y-3"
+            >
+              <!-- Header com gradiente -->
+              <div
+                class="relative h-40 bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900 overflow-hidden"
+              >
+                <div class="absolute inset-0 opacity-10">
+                  <div class="absolute inset-0 bg-gradient-to-br from-rose-400 to-pink-600"></div>
+                </div>
+              </div>
+
+              <!-- Avatar -->
+              <div class="relative px-6 -mt-16 mb-4">
+                <div
+                  class="w-32 h-32 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center text-white text-4xl font-bold shadow-2xl ring-4 ring-white group-hover:scale-105 transition-transform"
+                >
+                  <img
+                    v-if="prof.photos && prof.photos.length > 0"
+                    :src="
+                      prof.photos.find((p) => p.is_primary)?.photo_url || prof.photos[0].photo_url
+                    "
+                    :alt="prof.name"
+                    class="w-full h-full object-cover rounded-2xl"
+                  />
+                  <span v-else>{{
+                    prof.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                  }}</span>
+                </div>
+              </div>
+
+              <!-- Conteúdo -->
+              <div class="px-6 pb-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-1">{{ prof.name }}</h3>
+                <p class="text-rose-600 font-medium mb-4">{{ prof.category }}</p>
+
+                <div class="flex items-center gap-2 mb-4">
+                  <div class="flex items-center gap-1 bg-amber-50 px-3 py-1.5 rounded-full">
+                    <Star class="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <span class="font-bold text-gray-900">{{ prof.rating || 'N/A' }}</span>
+                  </div>
+                  <span class="text-sm text-gray-500"
+                    >({{ prof.review_count || 0 }} avaliações)</span
+                  >
+                </div>
+
+                <div class="flex items-center gap-2 text-sm text-gray-600 mb-6">
+                  <Building2 class="w-4 h-4 text-gray-400" />
+                  <span>{{ prof.complex_name }}</span>
+                </div>
+
+                <button
+                  class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  Ver Perfil
+                  <ArrowRight class="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="text-center mt-12">
-          <Button size="lg" @click="$router.push('/buscar')" class="theme-button text-white">
+        <div class="text-center mt-16">
+          <button
+            @click="$router.push('/buscar')"
+            class="bg-gradient-to-r from-rose-500 to-pink-600 text-white px-10 py-4 rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all duration-200 text-lg"
+          >
             Ver Todos os Profissionais
-          </Button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Seção Como Funciona -->
-    <section id="como-funciona" class="py-16 bg-muted">
-      <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">
-          Como funciona
-        </h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          <div class="text-center">
-            <div
-              class="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <Search class="w-8 h-8 text-rose-600 dark:text-rose-400" />
-            </div>
-            <h3 class="text-xl font-semibold mb-3 text-gray-900 dark:text-white">1. Busque</h3>
-            <p class="text-muted-foreground">
-              Encontre profissionais por categoria, nome, complexo ou localização
-            </p>
-          </div>
-
-          <div class="text-center">
-            <div
-              class="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <Eye class="w-8 h-8 text-rose-600 dark:text-rose-400" />
-            </div>
-            <h3 class="text-xl font-semibold mb-3 text-gray-900 dark:text-white">2. Conheça</h3>
-            <p class="text-muted-foreground">
-              Veja o perfil completo, fotos da sala comercial e informações detalhadas
-            </p>
-          </div>
-
-          <div class="text-center">
-            <div
-              class="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <MessageCircle class="w-8 h-8 text-rose-600 dark:text-rose-400" />
-            </div>
-            <h3 class="text-xl font-semibold mb-3 text-gray-900 dark:text-white">3. Conecte</h3>
-            <p class="text-muted-foreground">
-              Entre em contato direto via WhatsApp e agende seu atendimento
-            </p>
-          </div>
+          </button>
         </div>
       </div>
     </section>
@@ -159,13 +370,23 @@
 </template>
 
 <script setup lang="ts">
-import ProfessionalCard from '@/components/professional/ProfessionalCard.vue'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { supabase } from '@/services/api'
+import { getPopularSearches, trackSearch } from '@/services/searchAnalytics'
 import { useProfessionalsStore } from '@/stores/professionals'
-import { Eye, MessageCircle, Search } from 'lucide-vue-next'
+import {
+  ArrowRight,
+  Award,
+  Building2,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Search,
+  Star,
+} from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -173,21 +394,169 @@ const professionalStore = useProfessionalsStore()
 const { professionals: featuredProfessionals, loading, error } = storeToRefs(professionalStore)
 
 const searchQuery = ref('')
+const loadingComplexes = ref(true)
+const featuredComplexes = ref<
+  Array<{ id: string; name: string; city: string; count: number; photo_url: string | null }>
+>([])
+const carouselRef = ref<HTMLElement | null>(null)
+const canScrollLeft = ref(false)
+const canScrollRight = ref(true)
+const autoScrollInterval = ref<number | null>(null)
+const scrollY = ref(0)
+const quickFilters = ref<
+  Array<{ search_term: string; search_type: string; total_searches: number }>
+>([])
+const loadingFilters = ref(true)
 
-// Categorias mais populares
-const popularCategories = [
-  { label: 'Dentista', value: 'dentista', icon: '🦷' },
-  { label: 'Médico', value: 'medico', icon: '👨‍⚕️' },
-  { label: 'Psicólogo', value: 'psicologo', icon: '🧠' },
-  { label: 'Advogado', value: 'advogado', icon: '⚖️' },
-  { label: 'Contador', value: 'contador', icon: '💼' },
-  { label: 'Arquiteto', value: 'arquiteto', icon: '🏗️' },
-  { label: 'Consultor TI', value: 'consultor-ti', icon: '💻' },
-  { label: 'Esteticista', value: 'esteticista', icon: '💅' },
+// Features
+const features = [
+  { icon: CheckCircle2, text: 'Profissionais Verificados' },
+  { icon: Clock, text: 'Resposta Rápida' },
+  { icon: Award, text: 'Avaliações Reais' },
 ]
+
+// Limitar profissionais a 3 MELHORES AVALIADOS
+const limitedProfessionals = computed(() => {
+  const sorted = [...featuredProfessionals.value].sort((a, b) => {
+    if ((b.rating || 0) !== (a.rating || 0)) {
+      return (b.rating || 0) - (a.rating || 0)
+    }
+    return (b.review_count || 0) - (a.review_count || 0)
+  })
+
+  return sorted.slice(0, 3)
+})
+
+async function loadFeaturedComplexes() {
+  loadingComplexes.value = true
+  try {
+    console.log('🔍 Buscando complexos...')
+
+    // Buscar complexos cadastrados
+    const { data: complexesData, error: complexError } = await supabase
+      .from('complexes')
+      .select('id, name, city, photo_url')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+
+    console.log('📦 Complexos encontrados:', complexesData)
+
+    if (complexError) {
+      console.error('❌ Erro ao buscar complexos:', complexError)
+      throw complexError
+    }
+
+    if (!complexesData || complexesData.length === 0) {
+      console.log('⚠️ Nenhum complexo ativo encontrado')
+      featuredComplexes.value = []
+      return
+    }
+
+    // Contar profissionais em cada complexo
+    const complexesWithCount = await Promise.all(
+      complexesData.map(async (complex) => {
+        const { count, error: countError } = await supabase
+          .from('professionals')
+          .select('*', { count: 'exact', head: true })
+          .eq('complex_name', complex.name)
+          .eq('is_active', true)
+
+        if (countError) {
+          console.error('❌ Erro ao contar profissionais:', countError)
+        }
+
+        console.log(`👥 Complexo "${complex.name}": ${count || 0} profissionais`)
+
+        return {
+          ...complex,
+          count: count || 0,
+        }
+      }),
+    )
+
+    // Mostrar TODOS os complexos (mesmo sem profissionais, para teste)
+    featuredComplexes.value = complexesWithCount.sort((a, b) => b.count - a.count).slice(0, 10)
+
+    console.log('✅ Complexos carregados:', featuredComplexes.value.length)
+  } catch (err) {
+    console.error('💥 Erro ao carregar complexos:', err)
+  } finally {
+    loadingComplexes.value = false
+  }
+}
+
+async function loadQuickFilters() {
+  loadingFilters.value = true
+  try {
+    console.log('🔍 Buscando pesquisas populares...')
+
+    // Buscar pesquisas mais populares do banco de dados
+    const popularSearches = await getPopularSearches(6)
+    quickFilters.value = popularSearches
+
+    console.log('✅ Filtros rápidos carregados:', quickFilters.value)
+  } catch (err) {
+    console.error('💥 Erro ao carregar filtros rápidos:', err)
+    quickFilters.value = []
+  } finally {
+    loadingFilters.value = false
+  }
+}
+
+function updateScrollButtons() {
+  if (!carouselRef.value) return
+
+  const el = carouselRef.value
+  canScrollLeft.value = el.scrollLeft > 0
+  canScrollRight.value = el.scrollLeft < el.scrollWidth - el.clientWidth - 10
+}
+
+function scrollCarousel(direction: 'left' | 'right') {
+  if (!carouselRef.value) return
+
+  const scrollAmount = 340
+  const newScrollPos =
+    direction === 'left'
+      ? carouselRef.value.scrollLeft - scrollAmount
+      : carouselRef.value.scrollLeft + scrollAmount
+
+  carouselRef.value.scrollTo({
+    left: newScrollPos,
+    behavior: 'smooth',
+  })
+}
+
+function startAutoScroll() {
+  autoScrollInterval.value = window.setInterval(() => {
+    if (!carouselRef.value) return
+
+    if (canScrollRight.value) {
+      scrollCarousel('right')
+    } else {
+      carouselRef.value.scrollTo({
+        left: 0,
+        behavior: 'smooth',
+      })
+    }
+  }, 5000)
+}
+
+function stopAutoScroll() {
+  if (autoScrollInterval.value) {
+    clearInterval(autoScrollInterval.value)
+    autoScrollInterval.value = null
+  }
+}
+
+function handleScroll() {
+  scrollY.value = window.scrollY
+}
 
 function handleSearch() {
   if (searchQuery.value.trim()) {
+    // Trackear a pesquisa antes de redirecionar
+    trackSearch(searchQuery.value.trim(), 'general', 0)
+
     router.push({
       name: 'Search',
       query: { q: searchQuery.value },
@@ -197,10 +566,26 @@ function handleSearch() {
   }
 }
 
-function searchByCategory(category: string) {
+function searchByComplex(complexName: string) {
+  // Trackear pesquisa por complexo
+  trackSearch(complexName, 'complex', 0)
+
   router.push({
     name: 'Search',
-    query: { categoria: category },
+    query: { complexo: complexName },
+  })
+}
+
+function searchByCategory(searchTerm: string) {
+  // Trackear pesquisa (pode ser categoria, complexo ou geral)
+  const filter = quickFilters.value.find((f) => f.search_term === searchTerm)
+  const searchType = filter?.search_type || 'general'
+
+  trackSearch(searchTerm, searchType as 'category' | 'complex' | 'general', 0)
+
+  router.push({
+    name: 'Search',
+    query: { q: searchTerm },
   })
 }
 
@@ -209,10 +594,85 @@ function goToProfile(id: string) {
 }
 
 function retryLoad() {
-  professionalStore.searchProfessionals()
+  professionalStore.searchProfessionalsAdvanced({
+    query: '',
+    categories: [],
+    specialties: [],
+    priceMin: 0,
+    priceMax: 1000,
+    cities: [],
+    neighborhoods: [],
+    hasPhotos: false,
+    responseTime: [],
+    acceptsUrgent: false,
+    verified: false,
+    sortBy: 'relevance',
+  })
+  loadFeaturedComplexes()
 }
 
 onMounted(() => {
-  professionalStore.searchProfessionals()
+  professionalStore.searchProfessionalsAdvanced({
+    query: '',
+    categories: [],
+    specialties: [],
+    priceMin: 0,
+    priceMax: 1000,
+    cities: [],
+    neighborhoods: [],
+    hasPhotos: false,
+    responseTime: [],
+    acceptsUrgent: false,
+    verified: false,
+    sortBy: 'relevance',
+  })
+  loadFeaturedComplexes()
+  loadQuickFilters()
+
+  window.addEventListener('scroll', handleScroll)
+
+  setTimeout(() => {
+    startAutoScroll()
+  }, 3000)
+})
+
+onUnmounted(() => {
+  stopAutoScroll()
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
+
+<style scoped>
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+</style>

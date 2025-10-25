@@ -1,4 +1,3 @@
-<!-- src/pages/auth/EmailConfirmation.vue -->
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
@@ -15,7 +14,6 @@
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <!-- Sucesso no envio -->
         <div
           v-if="emailSent || initialEmailSent"
           class="mb-6 p-4 bg-green-50 border border-green-200 rounded-md"
@@ -35,7 +33,6 @@
           </div>
         </div>
 
-        <!-- Instruções -->
         <div class="space-y-4 mb-6">
           <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
             <h3 class="font-medium text-blue-900 mb-2">Como confirmar:</h3>
@@ -57,7 +54,6 @@
           </div>
         </div>
 
-        <!-- Email para reenvio -->
         <div class="space-y-4">
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
@@ -73,12 +69,10 @@
             />
           </div>
 
-          <!-- Erro -->
           <div v-if="error" class="bg-red-50 border border-red-200 p-3 rounded-md">
             <p class="text-sm text-red-600">{{ error }}</p>
           </div>
 
-          <!-- Botões -->
           <div class="space-y-3">
             <Button
               @click="resendConfirmation"
@@ -105,7 +99,6 @@
           </div>
         </div>
 
-        <!-- Ajuda -->
         <div class="mt-6 border-t border-gray-200 pt-6">
           <div class="text-center text-sm text-gray-600">
             <p class="mb-2">Ainda com problemas?</p>
@@ -117,7 +110,6 @@
       </div>
     </div>
 
-    <!-- Modal de Ajuda -->
     <div
       v-if="showHelp"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -227,7 +219,7 @@ async function resendConfirmation() {
 }
 
 function startCountdown() {
-  countdown.value = 60 // 60 segundos
+  countdown.value = 60
 
   countdownInterval = window.setInterval(() => {
     countdown.value--
@@ -238,15 +230,12 @@ function startCountdown() {
   }, 1000)
 }
 
-// Enviar email automaticamente ao montar o componente
 onMounted(async () => {
-  // Pegar email da URL ou do localStorage se disponível
   const urlEmail = route.query.email as string
   if (urlEmail) {
     email.value = urlEmail
   }
 
-  // Se tem email, enviar automaticamente
   if (email.value) {
     await sendInitialEmail()
   }
