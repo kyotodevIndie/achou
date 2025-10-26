@@ -602,7 +602,7 @@ async function loadComplexesByCity() {
   }
 }
 
-async function onComplexChange(complexName: string | null) {
+async function onComplexChange(complexName: any) {
   // Handle null value
   if (complexName === null) {
     complexName = 'none'
