@@ -602,7 +602,12 @@ async function loadComplexesByCity() {
   }
 }
 
-async function onComplexChange(complexName: string) {
+async function onComplexChange(complexName: string | null) {
+  // Handle null value
+  if (complexName === null) {
+    complexName = 'none'
+  }
+
   if (complexName === 'none' || !complexName) {
     // Restaurar localização manual original ou limpar
     if (
@@ -620,9 +625,6 @@ async function onComplexChange(complexName: string) {
       }
     }
     // Forçar re-render do mapa
-    setTimeout(() => {
-      mapKey.value++
-    }, 50)
     return
   }
 
@@ -635,12 +637,8 @@ async function onComplexChange(complexName: string) {
       longitude: selectedComplex.longitude,
     }
     // Forçar re-render do mapa com a nova localização
-    setTimeout(() => {
-      mapKey.value++
-    }, 50)
   }
 }
-
 async function loadCurrentProfile() {
   if (!authStore.user?.id) {
     router.push('/login')

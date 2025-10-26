@@ -1,6 +1,6 @@
 <template>
-  <div class="map-picker-container">
-    <div class="mb-4">
+  <div class="map-picker-wrapper">
+    <div class="map-picker-header">
       <label class="text-sm font-medium block mb-2"> Localização no Mapa </label>
       <p class="text-sm text-gray-600 mb-3">
         Clique no mapa para marcar a localização exata da sua sala comercial
@@ -24,7 +24,7 @@
 
             <div
               v-if="showSuggestions && suggestions.length > 0"
-              class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+              class="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
             >
               <div
                 v-for="(suggestion, index) in suggestions"
@@ -49,27 +49,15 @@
           </Button>
         </div>
       </div>
-
-      <div
-        v-if="modelValue.latitude && modelValue.longitude"
-        class="bg-green-50 border border-green-200 rounded-lg p-3 text-sm"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="text-green-800 font-medium">✓ Localização marcada</span>
-            <span class="text-green-600 ml-2">
-              {{ modelValue.latitude.toFixed(6) }}, {{ modelValue.longitude.toFixed(6) }}
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <div
-      ref="mapContainer"
-      class="map-wrapper border-2 border-dashed border-gray-300 rounded-lg"
-      :class="{ 'border-green-500': modelValue.latitude && modelValue.longitude }"
-    ></div>
+    <div class="map-picker-container">
+      <div
+        ref="mapContainer"
+        class="map-wrapper border-2 border-dashed border-gray-300 rounded-lg"
+        :class="{ 'border-green-500': modelValue.latitude && modelValue.longitude }"
+      ></div>
+    </div>
 
     <p class="text-xs text-gray-500 mt-2">
       💡 Dica: Use o scroll do mouse para dar zoom e arraste para mover o mapa
@@ -406,53 +394,99 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.map-picker-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-picker-header {
+  width: 100%;
+  flex-shrink: 0;
+}
+
 .map-picker-container {
   width: 100%;
+  height: 300px;
+  position: relative;
+  flex-shrink: 0;
 }
 
 .map-wrapper {
   width: 100%;
-  height: 400px;
+  height: 100%;
   border-radius: 12px;
   overflow: hidden;
   background-color: #f3f4f6;
+  position: relative;
+  z-index: 1;
 }
 
-/* FIX: Garantir que o mapa fique ABAIXO de modais, dialogs e headers */
+/* FIX CRÍTICO: Garantir que o mapa fique DENTRO do container */
 :deep(.leaflet-container) {
   z-index: 1 !important;
   width: 100%;
   height: 100%;
+  position: relative;
 }
 
 :deep(.leaflet-pane) {
+  z-index: 2 !important;
+}
+
+:deep(.leaflet-tile-pane) {
   z-index: 1 !important;
 }
 
+:deep(.leaflet-overlay-pane) {
+  z-index: 3 !important;
+}
+
+:deep(.leaflet-shadow-pane) {
+  z-index: 4 !important;
+}
+
+:deep(.leaflet-marker-pane) {
+  z-index: 5 !important;
+}
+
+:deep(.leaflet-tooltip-pane) {
+  z-index: 6 !important;
+}
+
+:deep(.leaflet-popup-pane) {
+  z-index: 7 !important;
+}
+
 :deep(.leaflet-control) {
-  z-index: 2 !important;
+  z-index: 10 !important;
+}
+
+:deep(.leaflet-top),
+:deep(.leaflet-bottom) {
+  z-index: 10 !important;
 }
 
 :deep(.leaflet-control-attribution) {
   font-size: 10px;
-  z-index: 2 !important;
+  z-index: 10 !important;
 }
 
-/* Estilo do dropdown de sugestões */
-:deep(.suggestions-dropdown) {
+/* Estilo do dropdown de sugestões - ACIMA do mapa */
+.suggestions-dropdown {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e0 #f7fafc;
 }
 
-:deep(.suggestions-dropdown::-webkit-scrollbar) {
+.suggestions-dropdown::-webkit-scrollbar {
   width: 6px;
 }
 
-:deep(.suggestions-dropdown::-webkit-scrollbar-track) {
+.suggestions-dropdown::-webkit-scrollbar-track {
   background: #f7fafc;
 }
 
-:deep(.suggestions-dropdown::-webkit-scrollbar-thumb) {
+.suggestions-dropdown::-webkit-scrollbar-thumb {
   background-color: #cbd5e0;
   border-radius: 3px;
 }
