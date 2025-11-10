@@ -91,12 +91,6 @@ const googleMapsUrl = computed(() => {
 })
 
 function initMap() {
-  console.log('StaticMap - Tentando inicializar mapa:', {
-    hasContainer: !!mapContainer.value,
-    latitude: props.latitude,
-    longitude: props.longitude,
-  })
-
   if (!mapContainer.value || !props.latitude || !props.longitude) {
     console.warn('StaticMap - Não pode inicializar: faltam dados')
     return
@@ -113,8 +107,6 @@ function initMap() {
       touchZoom: false,
     })
 
-    console.log('StaticMap - Mapa criado com sucesso')
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 19,
@@ -124,8 +116,6 @@ function initMap() {
       icon: customIcon,
       interactive: false,
     }).addTo(map)
-
-    console.log('StaticMap - Marker adicionado')
   } catch (error) {
     console.error('Erro ao inicializar mapa:', error)
   }
@@ -139,7 +129,6 @@ onMounted(() => {
       if (map) {
         setTimeout(() => {
           map?.invalidateSize()
-          console.log('StaticMap - invalidateSize chamado')
         }, 200)
       }
     }, 100)

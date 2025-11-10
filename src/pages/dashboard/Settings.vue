@@ -224,8 +224,6 @@ async function saveNotifications() {
   try {
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    console.log('Notificações salvas:', notifications)
-
     alert('Preferências salvas com sucesso!')
   } catch (error) {
     console.error('Erro ao salvar notificações:', error)
@@ -241,8 +239,6 @@ async function savePrivacy() {
   try {
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    console.log('Configurações de privacidade salvas:', privacy)
-
     alert('Configurações salvas com sucesso!')
   } catch (error) {
     console.error('Erro ao salvar privacidade:', error)
@@ -257,8 +253,6 @@ async function handleDeleteAccount() {
 
   try {
     await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    console.log('Conta excluída')
 
     alert('Conta excluída com sucesso. Sentiremos sua falta!')
   } catch (error) {

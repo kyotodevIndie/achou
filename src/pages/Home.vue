@@ -1,8 +1,6 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-    <!-- Hero Section com Imagem de Fundo -->
     <section class="relative overflow-hidden min-h-[600px] flex items-center">
-      <!-- Background com imagem -->
       <div class="absolute inset-0">
         <img
           src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80"
@@ -20,7 +18,6 @@
 
       <div class="relative container mx-auto px-4 py-24">
         <div class="text-center space-y-8 animate-fade-in max-w-4xl mx-auto">
-          <!-- Título Principal -->
           <h1 class="text-5xl md:text-7xl font-bold text-white leading-tight drop-shadow-2xl">
             Conecte-se aos
             <span
@@ -38,7 +35,6 @@
             comerciais, facilitando sua busca e economizando seu tempo
           </p>
 
-          <!-- Barra de Busca Premium -->
           <div class="max-w-2xl mx-auto mt-8">
             <div class="relative group">
               <div
@@ -69,7 +65,6 @@
               Busque por nome, profissão, complexo ou endereço
             </p>
 
-            <!-- Filtros Rápidos -->
             <div v-if="loadingFilters" class="flex justify-center mt-6">
               <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
             </div>
@@ -84,17 +79,16 @@
                 class="bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 hover:border-white/40 text-white px-5 py-2.5 rounded-xl font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2 shadow-lg"
               >
                 <span>{{ filter.search_term }}</span>
-                <span
+                <!-- <span
                   v-if="filter.total_searches > 0"
                   class="text-xs text-white/70 bg-white/10 px-2 py-0.5 rounded-full"
                 >
                   {{ filter.total_searches }}
-                </span>
+                </span> -->
               </button>
             </div>
           </div>
 
-          <!-- Features rápidas -->
           <div class="flex flex-wrap justify-center gap-6 mt-12">
             <div
               v-for="(feature, i) in features"
@@ -109,7 +103,6 @@
       </div>
     </section>
 
-    <!-- Complexos em Destaque - CARROSSEL PREMIUM -->
     <section class="py-20 bg-gradient-to-br from-gray-50 to-white">
       <div class="container mx-auto px-4">
         <div class="flex items-center justify-between mb-12">
@@ -166,7 +159,6 @@
               <div
                 class="relative bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 group-hover:border-rose-300 h-full group-hover:-translate-y-2"
               >
-                <!-- Imagem -->
                 <div
                   class="relative h-52 bg-gradient-to-br from-rose-400 via-pink-400 to-rose-500 overflow-hidden"
                 >
@@ -191,7 +183,6 @@
                     </span>
                   </div>
 
-                  <!-- Badge flutuante -->
                   <div class="absolute top-4 right-4">
                     <div class="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-xl">
                       <span
@@ -204,7 +195,6 @@
                   </div>
                 </div>
 
-                <!-- Conteúdo -->
                 <div class="p-6">
                   <h3
                     class="text-xl font-bold text-gray-900 mb-3 group-hover:text-rose-600 transition-colors"
@@ -241,7 +231,6 @@
       </div>
     </section>
 
-    <!-- Profissionais em Destaque -->
     <section class="py-20 bg-white">
       <div class="container mx-auto px-4">
         <div class="text-center mb-16">
@@ -294,7 +283,6 @@
             <div
               class="relative bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 group-hover:border-rose-300 group-hover:-translate-y-3"
             >
-              <!-- Header com gradiente -->
               <div
                 class="relative h-40 bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900 overflow-hidden"
               >
@@ -303,7 +291,6 @@
                 </div>
               </div>
 
-              <!-- Avatar -->
               <div class="relative px-6 -mt-16 mb-4">
                 <div
                   class="w-32 h-32 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center text-white text-4xl font-bold shadow-2xl ring-4 ring-white group-hover:scale-105 transition-transform"
@@ -325,7 +312,6 @@
                 </div>
               </div>
 
-              <!-- Conteúdo -->
               <div class="px-6 pb-6">
                 <h3 class="text-xl font-bold text-gray-900 mb-1">{{ prof.name }}</h3>
                 <p class="text-rose-600 font-medium mb-4">{{ prof.category }}</p>
@@ -408,14 +394,12 @@ const quickFilters = ref<
 >([])
 const loadingFilters = ref(true)
 
-// Features
 const features = [
   { icon: CheckCircle2, text: 'Profissionais Verificados' },
   { icon: Clock, text: 'Resposta Rápida' },
   { icon: Award, text: 'Avaliações Reais' },
 ]
 
-// Limitar profissionais a 3 MELHORES AVALIADOS
 const limitedProfessionals = computed(() => {
   const sorted = [...featuredProfessionals.value].sort((a, b) => {
     if ((b.rating || 0) !== (a.rating || 0)) {
@@ -427,11 +411,13 @@ const limitedProfessionals = computed(() => {
   return sorted.slice(0, 3)
 })
 
+// ============================================
+// SUBSTITUIR A FUNÇÃO loadFeaturedComplexes NO Home.vue
+// ============================================
+
 async function loadFeaturedComplexes() {
   loadingComplexes.value = true
   try {
-    console.log('🔍 Buscando complexos...')
-
     // Buscar complexos cadastrados
     const { data: complexesData, error: complexError } = await supabase
       .from('complexes')
@@ -439,62 +425,90 @@ async function loadFeaturedComplexes() {
       .eq('is_active', true)
       .order('created_at', { ascending: false })
 
-    console.log('📦 Complexos encontrados:', complexesData)
-
     if (complexError) {
       console.error('❌ Erro ao buscar complexos:', complexError)
       throw complexError
     }
 
     if (!complexesData || complexesData.length === 0) {
-      console.log('⚠️ Nenhum complexo ativo encontrado')
       featuredComplexes.value = []
       return
     }
 
-    // Contar profissionais em cada complexo
+    // Contar profissionais em cada complexo (APENAS COM PERFIL COMPLETO E ASSINATURA ATIVA)
     const complexesWithCount = await Promise.all(
       complexesData.map(async (complex) => {
-        const { count, error: countError } = await supabase
+        // Buscar profissionais com join na tabela subscriptions
+        const { data: profsData, error: countError } = await supabase
           .from('professionals')
-          .select('*', { count: 'exact', head: true })
+          .select(
+            `
+            id,
+            subscriptions!inner(
+              status,
+              current_period_end,
+              trial_end
+            )
+          `,
+            { count: 'exact', head: false },
+          )
           .eq('complex_name', complex.name)
           .eq('is_active', true)
+          .eq('profile_completed', true) // ✅ NOVO
+          .in('subscriptions.status', ['active', 'trialing']) // ✅ NOVO
 
         if (countError) {
           console.error('❌ Erro ao contar profissionais:', countError)
+          return { ...complex, count: 0 }
         }
 
-        console.log(`👥 Complexo "${complex.name}": ${count || 0} profissionais`)
+        // Filtrar apenas assinaturas válidas (não expiradas)
+        const validProfs = (profsData || []).filter((prof) => {
+          const subscription = Array.isArray(prof.subscriptions)
+            ? prof.subscriptions[0]
+            : prof.subscriptions
+
+          if (!subscription) return false
+
+          const status = subscription.status
+          const currentPeriodEnd = subscription.current_period_end
+          const trialEnd = subscription.trial_end
+
+          // ✅ VERIFICAR SE ASSINATURA NÃO EXPIROU
+          if (status === 'trialing' && trialEnd) {
+            return new Date(trialEnd) > new Date()
+          }
+
+          if (status === 'active' && currentPeriodEnd) {
+            return new Date(currentPeriodEnd) > new Date()
+          }
+
+          return false
+        })
 
         return {
           ...complex,
-          count: count || 0,
+          count: validProfs.length,
         }
       }),
     )
 
-    // Mostrar TODOS os complexos (mesmo sem profissionais, para teste)
-    featuredComplexes.value = complexesWithCount.sort((a, b) => b.count - a.count).slice(0, 10)
-
-    console.log('✅ Complexos carregados:', featuredComplexes.value.length)
+    // Mostrar complexos ordenados por número de profissionais
+    featuredComplexes.value = complexesWithCount
+      .filter((c) => c.count > 0) // Apenas complexos com profissionais válidos
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
   } catch (err) {
     console.error('💥 Erro ao carregar complexos:', err)
   } finally {
     loadingComplexes.value = false
   }
 }
-
 async function loadQuickFilters() {
   loadingFilters.value = true
   try {
-    console.log('🔍 Buscando pesquisas populares...')
-
-    // Buscar pesquisas mais populares do banco de dados
     const popularSearches = await getPopularSearches(6)
     quickFilters.value = popularSearches
-
-    console.log('✅ Filtros rápidos carregados:', quickFilters.value)
   } catch (err) {
     console.error('💥 Erro ao carregar filtros rápidos:', err)
     quickFilters.value = []
@@ -554,7 +568,6 @@ function handleScroll() {
 
 function handleSearch() {
   if (searchQuery.value.trim()) {
-    // Trackear a pesquisa antes de redirecionar
     trackSearch(searchQuery.value.trim(), 'general', 0)
 
     router.push({
@@ -567,7 +580,6 @@ function handleSearch() {
 }
 
 function searchByComplex(complexName: string) {
-  // Trackear pesquisa por complexo
   trackSearch(complexName, 'complex', 0)
 
   router.push({
@@ -577,7 +589,6 @@ function searchByComplex(complexName: string) {
 }
 
 function searchByCategory(searchTerm: string) {
-  // Trackear pesquisa (pode ser categoria, complexo ou geral)
   const filter = quickFilters.value.find((f) => f.search_term === searchTerm)
   const searchType = filter?.search_type || 'general'
 

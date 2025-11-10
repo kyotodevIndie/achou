@@ -121,13 +121,13 @@ const customIcon = L.divIcon({
 })
 
 function destroyMap() {
-  console.log('🧹 Destruindo mapa...')
+  
 
   if (marker) {
     try {
       if (map) map.removeLayer(marker)
     } catch (e) {
-      console.log('Erro ao remover marker:', e)
+      
     }
     marker = null
   }
@@ -137,7 +137,7 @@ function destroyMap() {
       map.off()
       map.remove()
     } catch (e) {
-      console.log('Erro ao remover mapa:', e)
+      
     }
     map = null
   }
@@ -152,24 +152,24 @@ function destroyMap() {
   }
 
   isInitialized.value = false
-  console.log('✅ Mapa destruído')
+  
 }
 
 async function initMap() {
   if (!mapContainer.value) {
-    console.log('⚠️ Container do mapa não encontrado')
+    
     return
   }
 
   // Sempre destruir antes de criar novo
   if (map || isInitialized.value) {
-    console.log('🔄 Mapa existe, destruindo antes de recriar...')
+    
     destroyMap()
     await nextTick()
   }
 
   try {
-    console.log('🗺️ Inicializando novo mapa...')
+    
 
     const initialLat = props.modelValue.latitude || props.initialCenter?.lat || -3.7327
     const initialLng = props.modelValue.longitude || props.initialCenter?.lng || -38.527
@@ -203,7 +203,7 @@ async function initMap() {
       if (map) {
         map.invalidateSize()
         isInitialized.value = true
-        console.log('✅ Mapa inicializado com sucesso')
+        
       }
     }, 150)
   } catch (error) {
@@ -215,7 +215,7 @@ async function initMap() {
 
 function addMarker(lat: number, lng: number) {
   if (!map) {
-    console.log('⚠️ Mapa não disponível para adicionar marker')
+    
     return
   }
 
@@ -224,7 +224,7 @@ function addMarker(lat: number, lng: number) {
     try {
       map.removeLayer(marker)
     } catch (e) {
-      console.log('Erro ao remover marker anterior:', e)
+      
     }
   }
 
@@ -357,7 +357,7 @@ watch(
         try {
           map.removeLayer(marker)
         } catch (e) {
-          console.log('Erro ao remover marker:', e)
+          
         }
       }
       marker = null
@@ -371,7 +371,7 @@ watch(
   () => props.initialCenter,
   async (newCenter) => {
     if (newCenter) {
-      console.log('🔄 InitialCenter mudou, reinicializando mapa...', newCenter)
+      
       await initMap()
     }
   },
@@ -379,13 +379,13 @@ watch(
 )
 
 onMounted(async () => {
-  console.log('📍 MapPicker montado')
+  
   await nextTick()
   await initMap()
 })
 
 onBeforeUnmount(() => {
-  console.log('🗑️ MapPicker desmontado, limpando recursos...')
+  
   destroyMap()
   if (searchTimeout) {
     clearTimeout(searchTimeout)

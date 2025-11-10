@@ -107,12 +107,10 @@ const router = createRouter({
 
         // Verificar se está autorizado
         if (!userEmail || userEmail !== authorizedEmail) {
-          console.log('⛔ Acesso negado - Email não autorizado:', userEmail)
           next('/dashboard')
           return
         }
 
-        console.log('✅ Acesso autorizado:', userEmail)
         next()
       },
     },
@@ -139,7 +137,6 @@ router.beforeEach(async (to, from, next) => {
 
     // Verificar se usuário está autenticado
     if (!authStore.isAuthenticated) {
-      console.log('Usuário não autenticado, redirecionando para login')
       // Salvar a rota que tentou acessar para redirecionar depois do login
       next({
         path: '/login',
@@ -151,7 +148,6 @@ router.beforeEach(async (to, from, next) => {
     // Verificar se email foi confirmado
     const user = authStore.user
     if (user && !user.email_confirmed_at) {
-      console.log('Email não confirmado, redirecionando para confirmação')
       next({
         path: '/confirmar-email',
         query: { email: user.email },

@@ -1,4 +1,4 @@
-// src/stores/professionals.ts - Store completo com busca avançada E FOTOS + RATINGS
+// src/stores/professionals.ts - Store completo com filtros de perfil completo e assinatura ativa
 import { supabase } from '@/services/api'
 import type { AdvancedSearchParams, Professional, SearchParams, UserLocation } from '@/types'
 import { defineStore } from 'pinia'
@@ -39,6 +39,30 @@ export const useProfessionalsStore = defineStore('professionals', () => {
     return { min: min || 0, max: max || 999999 }
   }
 
+  // Função para verificar se assinatura está válida
+  function isSubscriptionActive(subscription: any): boolean {
+    if (!subscription) return false
+
+    const status = subscription.status
+    const currentPeriodEnd = subscription.current_period_end
+    const trialEnd = subscription.trial_end
+
+    // Status ativo ou trialing
+    if (!['active', 'trialing'].includes(status)) return false
+
+    // Se está em trial, verificar se ainda não expirou
+    if (status === 'trialing' && trialEnd) {
+      return new Date(trialEnd) > new Date()
+    }
+
+    // Se está ativo, verificar se período atual não expirou
+    if (status === 'active' && currentPeriodEnd) {
+      return new Date(currentPeriodEnd) > new Date()
+    }
+
+    return false
+  }
+
   // Busca avançada
   async function searchProfessionalsAdvanced(params: AdvancedSearchParams) {
     loading.value = true
@@ -56,11 +80,19 @@ export const useProfessionalsStore = defineStore('professionals', () => {
             is_primary,
             order_index
           ),
+          subscriptions!inner(
+            id,
+            status,
+            current_period_end,
+            trial_end
+          ),
           rating,
           review_count
         `,
         )
         .eq('is_active', true) // ✅ APENAS PROFISSIONAIS ATIVOS
+        .eq('profile_completed', true) // ✅ APENAS PERFIS COMPLETOS
+        .in('subscriptions.status', ['active', 'trialing']) // ✅ APENAS COM ASSINATURA ATIVA OU EM TRIAL
 
       // Filtro de texto em múltiplos campos
       if (params.query) {
@@ -134,6 +166,16 @@ export const useProfessionalsStore = defineStore('professionals', () => {
       if (apiError) throw new Error(apiError.message)
 
       let results = data || []
+
+      // ✅ FILTRAR ASSINATURAS VÁLIDAS (verificação adicional no frontend)
+      results = results.filter((prof) => {
+        // Pegar a primeira assinatura (devido ao inner join, sempre haverá pelo menos uma)
+        const subscription = Array.isArray(prof.subscriptions)
+          ? prof.subscriptions[0]
+          : prof.subscriptions
+
+        return isSubscriptionActive(subscription)
+      })
 
       // Buscar ratings para cada profissional
       if (results.length > 0) {
@@ -290,6 +332,12 @@ export const useProfessionalsStore = defineStore('professionals', () => {
             photo_url,
             is_primary,
             order_index
+          ),
+          subscriptions(
+            id,
+            status,
+            current_period_end,
+            trial_end
           )
         `,
         )
@@ -298,6 +346,19 @@ export const useProfessionalsStore = defineStore('professionals', () => {
         .single()
 
       if (apiError) throw new Error(apiError.message)
+
+      // ✅ VERIFICAR SE TEM PERFIL COMPLETO E ASSINATURA ATIVA
+      if (!data.profile_completed) {
+        throw new Error('Perfil não está completo')
+      }
+
+      // Verificar se tem pelo menos uma assinatura ativa
+      const hasActiveSubscription =
+        data.subscriptions?.some((sub: any) => isSubscriptionActive(sub)) || false
+
+      if (!hasActiveSubscription) {
+        throw new Error('Profissional não possui assinatura ativa')
+      }
 
       // Buscar reviews do profissional
       const { data: reviewsData } = await supabase
@@ -349,10 +410,29 @@ export const useProfessionalsStore = defineStore('professionals', () => {
     try {
       const { data, error } = await supabase
         .from('professionals')
-        .select('category, city, neighborhood, verified, response_time')
+        .select(
+          `
+          category,
+          city,
+          neighborhood,
+          verified,
+          response_time,
+          subscriptions!inner(status, current_period_end, trial_end)
+        `,
+        )
         .eq('is_active', true) // ✅ APENAS PROFISSIONAIS ATIVOS
+        .eq('profile_completed', true) // ✅ APENAS PERFIS COMPLETOS
+        .in('subscriptions.status', ['active', 'trialing']) // ✅ APENAS COM ASSINATURA
 
       if (error) throw error
+
+      // Filtrar assinaturas válidas
+      const validData = data.filter((prof) => {
+        const subscription = Array.isArray(prof.subscriptions)
+          ? prof.subscriptions[0]
+          : prof.subscriptions
+        return isSubscriptionActive(subscription)
+      })
 
       const counts = {
         categories: {} as Record<string, number>,
@@ -362,7 +442,7 @@ export const useProfessionalsStore = defineStore('professionals', () => {
         fastResponse: 0,
       }
 
-      data.forEach((prof) => {
+      validData.forEach((prof) => {
         // Contar categorias
         if (prof.category) {
           counts.categories[prof.category] = (counts.categories[prof.category] || 0) + 1

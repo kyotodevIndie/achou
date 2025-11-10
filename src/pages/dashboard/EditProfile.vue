@@ -116,29 +116,6 @@
               <div class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="text-sm font-medium block mb-2">Cidade *</label>
-                    <Select
-                      v-model="profileForm.city"
-                      :disabled="saving"
-                      @update:model-value="loadComplexesByCity"
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a cidade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Fortaleza">Fortaleza</SelectItem>
-                        <SelectItem value="Caucaia">Caucaia</SelectItem>
-                        <SelectItem value="Maracanaú">Maracanaú</SelectItem>
-                        <SelectItem value="Sobral">Sobral</SelectItem>
-                        <SelectItem value="Juazeiro do Norte">Juazeiro do Norte</SelectItem>
-                        <SelectItem value="Crato">Crato</SelectItem>
-                        <SelectItem value="Itapipoca">Itapipoca</SelectItem>
-                        <SelectItem value="Maranguape">Maranguape</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
                     <label class="text-sm font-medium block mb-2">Complexo/Edifício</label>
                     <Select
                       v-model="profileForm.complex_name"
@@ -157,7 +134,7 @@
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Nenhum (deixar em branco)</SelectItem>
+                        <SelectItem value="none">Nenhum (preencher manualmente)</SelectItem>
                         <SelectItem
                           v-for="complex in availableComplexes"
                           :key="complex.id"
@@ -177,6 +154,32 @@
                       }}
                     </p>
                   </div>
+
+                  <div>
+                    <label class="text-sm font-medium block mb-2">Cidade *</label>
+                    <Select
+                      v-model="profileForm.city"
+                      :disabled="saving || isComplexSelected"
+                      @update:model-value="loadComplexesByCity"
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a cidade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Fortaleza">Fortaleza</SelectItem>
+                        <SelectItem value="Caucaia">Caucaia</SelectItem>
+                        <SelectItem value="Maracanaú">Maracanaú</SelectItem>
+                        <SelectItem value="Sobral">Sobral</SelectItem>
+                        <SelectItem value="Juazeiro do Norte">Juazeiro do Norte</SelectItem>
+                        <SelectItem value="Crato">Crato</SelectItem>
+                        <SelectItem value="Itapipoca">Itapipoca</SelectItem>
+                        <SelectItem value="Maranguape">Maranguape</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p v-if="isComplexSelected" class="text-xs text-blue-600 mt-1">
+                      🔒 Preenchido automaticamente pelo complexo
+                    </p>
+                  </div>
                 </div>
 
                 <div>
@@ -185,10 +188,26 @@
                     v-model="profileForm.address"
                     placeholder="Rua, número, sala/andar, bairro"
                     required
-                    :disabled="saving"
+                    :disabled="saving || isComplexSelected"
                   />
-                  <p class="text-xs text-gray-500 mt-1">
+                  <p v-if="isComplexSelected" class="text-xs text-blue-600 mt-1">
+                    🔒 Preenchido automaticamente pelo complexo. Para editar, selecione "Nenhum" no
+                    campo de complexo.
+                  </p>
+                  <p v-else class="text-xs text-gray-500 mt-1">
                     Seja específico para facilitar a localização dos seus clientes
+                  </p>
+                </div>
+
+                <div>
+                  <label class="text-sm font-medium block mb-2">Bairro</label>
+                  <Input
+                    v-model="profileForm.neighborhood"
+                    placeholder="Ex: Aldeota, Meireles..."
+                    :disabled="saving || isComplexSelected"
+                  />
+                  <p v-if="isComplexSelected" class="text-xs text-blue-600 mt-1">
+                    🔒 Preenchido automaticamente pelo complexo
                   </p>
                 </div>
               </div>
@@ -260,9 +279,12 @@
                   📍 Localização automática do complexo
                   <strong>{{ profileForm.complex_name }}</strong>
                 </p>
+                <p class="text-xs text-blue-600 mb-2">
+                  A localização, endereço, bairro e cidade são definidos automaticamente pelo
+                  complexo selecionado.
+                </p>
                 <p class="text-xs text-blue-600">
-                  A localização é definida pelo complexo e não pode ser alterada. Para usar uma
-                  localização personalizada, selecione "Nenhum" no campo de complexo.
+                  Para usar informações personalizadas, selecione "Nenhum" no campo de complexo.
                 </p>
               </div>
 
@@ -491,12 +513,14 @@ const photos = ref<ProfessionalPhoto[]>([])
 const fileInputRef = ref<HTMLInputElement>()
 const compressionProgress = ref(0)
 
-// Lista de complexos disponíveis
+// Lista de complexos disponíveis - ATUALIZADA COM NOVOS CAMPOS
 const availableComplexes = ref<
   Array<{
     id: string
     name: string
     city: string
+    address: string | null
+    neighborhood: string | null
     latitude: number | null
     longitude: number | null
   }>
@@ -511,6 +535,7 @@ interface OriginalFormState {
   description?: string
   complex_name?: string
   address?: string
+  neighborhood?: string
   city?: string
   price_range?: string
   response_time?: 'fast' | 'medium' | 'slow'
@@ -529,6 +554,7 @@ const profileForm = reactive({
   description: '',
   complex_name: 'none',
   address: '',
+  neighborhood: '',
   city: '',
   price_range: '',
   response_time: 'medium' as 'fast' | 'medium' | 'slow',
@@ -556,6 +582,7 @@ const hasChanges = computed(() => {
 const canAddMorePhotos = computed(() => photos.value.length < MAX_PHOTOS)
 const photosRemaining = computed(() => MAX_PHOTOS - photos.value.length)
 
+// FUNÇÃO ATUALIZADA - Busca também address e neighborhood
 async function loadComplexesByCity() {
   if (!profileForm.city) {
     availableComplexes.value = []
@@ -567,7 +594,7 @@ async function loadComplexesByCity() {
   try {
     const { data, error } = await supabase
       .from('complexes')
-      .select('id, name, city, latitude, longitude')
+      .select('id, name, city, address, neighborhood, latitude, longitude')
       .eq('city', profileForm.city)
       .eq('is_active', true)
       .order('name', { ascending: true })
@@ -588,6 +615,9 @@ async function loadComplexesByCity() {
         originalProfileForm.value.complex_name === '' ||
         originalProfileForm.value.complex_name === 'none'
       ) {
+        profileForm.address = originalProfileForm.value.address || ''
+        profileForm.neighborhood = originalProfileForm.value.neighborhood || ''
+        profileForm.city = originalProfileForm.value.city || ''
         location.value = {
           latitude: originalProfileForm.value.latitude || null,
           longitude: originalProfileForm.value.longitude || null,
@@ -602,6 +632,7 @@ async function loadComplexesByCity() {
   }
 }
 
+// FUNÇÃO ATUALIZADA - Preenche também address, neighborhood e city
 async function onComplexChange(complexName: any) {
   // Handle null value
   if (complexName === null) {
@@ -609,36 +640,58 @@ async function onComplexChange(complexName: any) {
   }
 
   if (complexName === 'none' || !complexName) {
-    // Restaurar localização manual original ou limpar
+    // Restaurar dados manuais originais ou limpar
     if (
       originalProfileForm.value.complex_name === '' ||
       originalProfileForm.value.complex_name === 'none'
     ) {
+      profileForm.address = originalProfileForm.value.address || ''
+      profileForm.neighborhood = originalProfileForm.value.neighborhood || ''
+      profileForm.city = originalProfileForm.value.city || ''
       location.value = {
         latitude: originalProfileForm.value.latitude || null,
         longitude: originalProfileForm.value.longitude || null,
       }
     } else {
+      profileForm.address = ''
+      profileForm.neighborhood = ''
       location.value = {
         latitude: null,
         longitude: null,
       }
     }
-    // Forçar re-render do mapa
     return
   }
 
-  // Buscar localização do complexo selecionado
+  // Buscar TODOS os dados do complexo selecionado
   const selectedComplex = availableComplexes.value.find((c) => c.name === complexName)
 
-  if (selectedComplex && selectedComplex.latitude && selectedComplex.longitude) {
-    location.value = {
-      latitude: selectedComplex.latitude,
-      longitude: selectedComplex.longitude,
+  if (selectedComplex) {
+    // Preencher CIDADE
+    if (selectedComplex.city) {
+      profileForm.city = selectedComplex.city
     }
-    // Forçar re-render do mapa com a nova localização
+
+    // Preencher ENDEREÇO
+    if (selectedComplex.address) {
+      profileForm.address = selectedComplex.address
+    }
+
+    // Preencher BAIRRO
+    if (selectedComplex.neighborhood) {
+      profileForm.neighborhood = selectedComplex.neighborhood
+    }
+
+    // Preencher LOCALIZAÇÃO (lat/lng)
+    if (selectedComplex.latitude && selectedComplex.longitude) {
+      location.value = {
+        latitude: selectedComplex.latitude,
+        longitude: selectedComplex.longitude,
+      }
+    }
   }
 }
+
 async function loadCurrentProfile() {
   if (!authStore.user?.id) {
     router.push('/login')
@@ -671,6 +724,7 @@ async function loadCurrentProfile() {
       description: professional.description || '',
       complex_name: professional.complex_name || 'none',
       address: professional.address || '',
+      neighborhood: professional.neighborhood || '',
       city: professional.city || '',
       price_range: professional.price_range || '',
       response_time: professional.response_time || 'medium',
@@ -766,6 +820,7 @@ async function saveProfile() {
         description: profileForm.description,
         complex_name: complexNameToSave,
         address: profileForm.address,
+        neighborhood: profileForm.neighborhood,
         city: profileForm.city,
         price_range: profileForm.price_range,
         response_time: profileForm.response_time,

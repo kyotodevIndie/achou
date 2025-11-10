@@ -141,13 +141,10 @@ export async function trackSearch(
 
     if (!normalizedTerm) return
 
-    console.log('📊 Tracking search:', { searchTerm: normalizedTerm, searchType, resultCount })
-
     // Validar o tipo automaticamente se for 'general'
     let finalSearchType = searchType
     if (searchType === 'general') {
       finalSearchType = await autoDetectSearchType(normalizedTerm)
-      console.log('🔍 Auto-detected type:', finalSearchType)
     }
 
     // 1. Inserir no histórico de pesquisas
@@ -182,8 +179,6 @@ export async function trackSearch(
         total_searches: 1,
       })
     }
-
-    console.log('✅ Search tracked successfully')
   } catch (error) {
     console.error('❌ Erro ao trackear pesquisa:', error)
     // Não bloquear a aplicação se o tracking falhar
@@ -196,8 +191,6 @@ export async function trackSearch(
  */
 export async function getPopularSearches(limit: number = 6): Promise<PopularSearch[]> {
   try {
-    console.log('🔍 Buscando pesquisas populares...')
-
     // Buscar as mais pesquisadas dos últimos 30 dias
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -213,7 +206,6 @@ export async function getPopularSearches(limit: number = 6): Promise<PopularSear
     if (error) throw error
 
     if (!data || data.length === 0) {
-      console.log('⚠️ Nenhuma pesquisa popular encontrada, usando fallback')
       return getFallbackSearches()
     }
 
@@ -228,7 +220,6 @@ export async function getPopularSearches(limit: number = 6): Promise<PopularSear
     })
 
     if (validSearches.length === 0) {
-      console.log('⚠️ Nenhuma pesquisa válida encontrada, usando fallback')
       return getFallbackSearches()
     }
 
@@ -261,7 +252,6 @@ export async function getPopularSearches(limit: number = 6): Promise<PopularSear
       result.push(...additionalTerms.slice(0, limit - result.length))
     }
 
-    console.log('✅ Pesquisas populares carregadas:', result.length)
     return result.slice(0, limit)
   } catch (error) {
     console.error('❌ Erro ao buscar pesquisas populares:', error)

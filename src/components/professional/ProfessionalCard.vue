@@ -1,19 +1,13 @@
 <template>
-  <div class="group cursor-pointer" :style="animationStyle" @click="handleClick">
+  <div class="group" :style="animationStyle">
     <div
       class="relative bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 group-hover:border-rose-300 group-hover:-translate-y-3"
     >
-      <!-- Header com gradiente -->
-      <div
-        class="relative h-40 bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900 overflow-hidden"
-      >
-        <div class="absolute inset-0 opacity-10">
-          <div class="absolute inset-0 bg-gradient-to-br from-rose-400 to-pink-600"></div>
-        </div>
-      </div>
+      <!-- Header limpo -->
+      <div class="relative h-24 bg-gradient-to-br from-rose-500 to-pink-600 overflow-hidden"></div>
 
       <!-- Avatar -->
-      <div class="relative px-6 -mt-16 mb-4">
+      <div class="relative px-6 -mt-12 mb-4">
         <div
           class="w-32 h-32 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center text-white text-4xl font-bold shadow-2xl ring-4 ring-white group-hover:scale-105 transition-transform"
         >
@@ -59,6 +53,7 @@
 
         <!-- Botão de ação -->
         <button
+          @click="handleClick"
           class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
         >
           Ver Perfil

@@ -92,7 +92,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     if (existingCustomers.data.length > 0) {
       customer = existingCustomers.data[0]
-      console.log('Found existing customer:', customer.id)
+      
     } else {
       customer = await stripe.customers.create({
         email: professional.email,
@@ -102,7 +102,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
           user_id: professional.user_id,
         },
       })
-      console.log('Created new customer:', customer.id)
+      
     }
 
     const existingSubscriptions = await stripe.subscriptions.list({
@@ -145,7 +145,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       billing_address_collection: 'required',
     })
 
-    console.log('Checkout session created:', session.id)
+    
 
     return {
       statusCode: 200,

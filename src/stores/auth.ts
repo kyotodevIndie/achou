@@ -92,8 +92,6 @@ export const useAuthStore = defineStore('auth', () => {
   // Escutar mudanças de autenticação
   function setupAuthListener() {
     supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth event:', event, session?.user?.email)
-
       user.value = session?.user || null
 
       // Só redirecionar em casos específicos, não sempre

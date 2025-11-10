@@ -1,7 +1,7 @@
 import type { Handler } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 
-console.log('🔧 Função create-review carregada')
+
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
@@ -19,7 +19,7 @@ interface ReviewData {
 
 async function verifyCaptcha(token: string, ip: string): Promise<boolean> {
   try {
-    console.log('🔐 Verificando captcha...')
+    
     const HCAPTCHA_SECRET = process.env.HCAPTCHA_SECRET_KEY
 
     const response = await fetch('https://hcaptcha.com/siteverify', {
@@ -35,7 +35,7 @@ async function verifyCaptcha(token: string, ip: string): Promise<boolean> {
     })
 
     const data = await response.json()
-    console.log('🔐 Resposta do captcha:', data)
+    
     return data.success === true
   } catch (error) {
     console.error('❌ Erro ao verificar captcha:', error)
@@ -73,8 +73,8 @@ function validateReviewData(data: any): { valid: boolean; errors: string[] } {
 }
 
 export const handler: Handler = async (event) => {
-  console.log('🚀 Função create-review chamada')
-  console.log('📝 Method:', event.httpMethod)
+  
+  
 
   if (event.httpMethod !== 'POST') {
     return {
@@ -85,15 +85,13 @@ export const handler: Handler = async (event) => {
 
   try {
     const data: ReviewData = JSON.parse(event.body || '{}')
-    console.log('📦 Dados recebidos:', {
-      ...data,
-      captchaToken: data.captchaToken?.substring(0, 20),
+    ,
     })
 
     // Validar dados
     const validation = validateReviewData(data)
     if (!validation.valid) {
-      console.log('❌ Validação falhou:', validation.errors)
+      
       return {
         statusCode: 400,
         body: JSON.stringify({
@@ -106,12 +104,12 @@ export const handler: Handler = async (event) => {
     // Obter IP do usuário
     const ip =
       event.headers['x-forwarded-for']?.split(',')[0] || event.headers['x-real-ip'] || 'localhost'
-    console.log('🌐 IP do usuário:', ip)
+    
 
     // Verificar captcha
     const captchaValid = await verifyCaptcha(data.captchaToken, ip)
     if (!captchaValid) {
-      console.log('❌ Captcha inválido')
+      
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Captcha inválido ou expirado' }),
@@ -119,7 +117,7 @@ export const handler: Handler = async (event) => {
     }
 
     // Criar review no banco
-    console.log('💾 Criando review no banco...')
+    
     const { data: review, error: reviewError } = await supabase
       .from('reviews')
       .insert({
@@ -137,10 +135,10 @@ export const handler: Handler = async (event) => {
       throw reviewError
     }
 
-    console.log('✅ Review criada:', review.id)
+    
 
     // Atualizar rating do profissional
-    console.log('📊 Atualizando rating do profissional...')
+    
     const { data: allReviews } = await supabase
       .from('reviews')
       .select('rating')
@@ -158,7 +156,7 @@ export const handler: Handler = async (event) => {
         })
         .eq('id', data.professional_id)
 
-      console.log(`✅ Rating atualizado: ${avgRating.toFixed(2)} (${allReviews.length} reviews)`)
+      } (${allReviews.length} reviews)`)
     }
 
     return {

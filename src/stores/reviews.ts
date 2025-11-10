@@ -59,10 +59,6 @@ export const useReviewsStore = defineStore('reviews', () => {
         .eq('id', professionalId)
 
       if (updateError) throw updateError
-
-      console.log(
-        `Rating atualizado para profissional ${professionalId}: ${rating.toFixed(2)} (${reviewCount} reviews)`,
-      )
     } catch (err) {
       console.error('Erro ao atualizar rating do profissional:', err)
     }
@@ -100,8 +96,6 @@ export const useReviewsStore = defineStore('reviews', () => {
     error.value = null
 
     try {
-      console.log('Enviando review para Netlify Function...', reviewData)
-
       // Chamar Netlify Function
       const response = await fetch('/.netlify/functions/create-review', {
         method: 'POST',
@@ -112,7 +106,6 @@ export const useReviewsStore = defineStore('reviews', () => {
       })
 
       const result = await response.json()
-      console.log('Resposta da função:', result)
 
       if (!response.ok) {
         throw new Error(result.error || 'Erro ao criar avaliação')

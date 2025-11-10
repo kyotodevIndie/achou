@@ -28,14 +28,14 @@
 
       <section
         v-if="professional.photos && professional.photos.length > 0"
-        class="container mx-auto px-4 py-6"
+        class="container mx-auto px-4 py-4"
       >
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 max-w-6xl mx-auto">
           <div v-if="mainPhoto" class="lg:row-span-2">
             <img
               :src="mainPhoto.photo_url"
               :alt="`Sala de ${professional.name}`"
-              class="w-full h-96 lg:h-full object-cover rounded-xl cursor-pointer hover:brightness-105 transition-all"
+              class="w-full h-64 lg:h-80 object-cover rounded-xl cursor-pointer hover:brightness-105 transition-all"
               @click="openGallery(0)"
               loading="lazy"
             />
@@ -50,7 +50,7 @@
               <img
                 :src="photo.photo_url"
                 :alt="`Foto ${index + 2} da sala`"
-                class="w-full h-48 object-cover rounded-xl cursor-pointer hover:brightness-105 transition-all"
+                class="w-full h-32 lg:h-40 object-cover rounded-xl cursor-pointer hover:brightness-105 transition-all"
                 @click="openGallery(index + 1)"
                 loading="lazy"
               />

@@ -12,7 +12,7 @@ const supabase = createClient(
 )
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  console.log('Webhook received:', event.httpMethod)
+  
 
   if (event.httpMethod !== 'POST') {
     return {
@@ -36,7 +36,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
   try {
     stripeEvent = stripe.webhooks.constructEvent(event.body!, sig, endpointSecret)
-    console.log('Webhook verified:', stripeEvent.type)
+    
   } catch (err) {
     console.error('Webhook signature verification failed:', err)
     return {
@@ -72,7 +72,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         break
 
       default:
-        console.log(`Unhandled event type: ${stripeEvent.type}`)
+        
     }
 
     return {
@@ -89,7 +89,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  console.log('Checkout completed:', session.id)
+  
 
   if (session.mode === 'subscription' && session.subscription) {
     const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
@@ -98,7 +98,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
-  console.log('Subscription created:', subscription.id)
+  
 
   const professionalId = subscription.metadata?.professional_id
   const planId = subscription.metadata?.plan_id
@@ -146,7 +146,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
       return
     }
 
-    console.log('Subscription created in DB:', subscriptionData)
+    
 
     const isActive = subscription.status === 'active' || subscription.status === 'trialing'
 
@@ -167,7 +167,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     if (professionalError) {
       console.error('Error updating professional:', professionalError)
     } else {
-      console.log('Professional activated:', professionalId)
+      
     }
   } catch (err) {
     console.error('Error in handleSubscriptionCreated:', err)
@@ -175,7 +175,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  console.log('Subscription updated:', subscription.id)
+  
 
   try {
     const sub = subscription as any
@@ -232,12 +232,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       if (professionalError) {
         console.error('Error updating professional:', professionalError)
       } else {
-        console.log(
-          'Professional updated:',
-          subscriptionData.professional_id,
-          'Status:',
-          subscription.status,
-        )
+        
       }
     }
   } catch (err) {
@@ -246,7 +241,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  console.log('Subscription deleted:', subscription.id)
+  
 
   try {
     const { error: subscriptionError } = await supabase
@@ -282,7 +277,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       if (professionalError) {
         console.error('Error updating professional:', professionalError)
       } else {
-        console.log('Professional deactivated:', subscriptionData.professional_id)
+        
       }
     }
   } catch (err) {
@@ -291,7 +286,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  console.log('Payment succeeded:', invoice.id)
+  
 
   const inv = invoice as any
   const subscriptionId = inv.subscription as string | undefined
@@ -317,14 +312,14 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
       if (error) {
         console.error('Error creating transaction:', error)
       } else {
-        console.log('Transaction recorded for professional:', subscriptionData.professional_id)
+        
       }
     }
   }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  console.log('Payment failed:', invoice.id)
+  
 
   const inv = invoice as any
   const subscriptionId = inv.subscription as string | undefined
@@ -350,10 +345,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
       if (error) {
         console.error('Error creating failed transaction:', error)
       } else {
-        console.log(
-          'Failed transaction recorded for professional:',
-          subscriptionData.professional_id,
-        )
+        
       }
     }
   }

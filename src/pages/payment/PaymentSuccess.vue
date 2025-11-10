@@ -66,7 +66,6 @@ const route = useRoute()
 onMounted(() => {
   const sessionId = route.query.session_id
   if (sessionId) {
-    console.log('Stripe session ID:', sessionId)
   }
 })
 </script>

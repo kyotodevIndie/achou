@@ -376,11 +376,34 @@ const analytics = ref({
 })
 
 const isReallyActive = computed(() => {
-  return (
-    professional.value?.is_active === true &&
-    (professional.value?.subscription_status === 'active' ||
-      professional.value?.subscription_status === 'trialing')
-  )
+  if (!professional.value?.profile_completed) {
+    return false
+  }
+
+  if (!professional.value?.is_active) {
+    return false
+  }
+
+  if (!subscription.value) {
+    return false
+  }
+
+  const status = subscription.value.status
+  const now = new Date()
+
+  if (status === 'trialing') {
+    const trialEnd = subscription.value.trial_end
+    if (!trialEnd) return false
+    return new Date(trialEnd) > now
+  }
+
+  if (status === 'active') {
+    const periodEnd = subscription.value.current_period_end
+    if (!periodEnd) return false
+    return new Date(periodEnd) > now
+  }
+
+  return false
 })
 
 const displayName = computed(() => {
@@ -476,7 +499,7 @@ async function loadProfessionalData() {
 
     if (!professionalData) {
       professional.value = null
-      console.log('Nenhum profissional encontrado para este usuário')
+
       return
     }
 
