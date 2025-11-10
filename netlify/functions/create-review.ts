@@ -1,8 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 
-
-
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -19,7 +17,6 @@ interface ReviewData {
 
 async function verifyCaptcha(token: string, ip: string): Promise<boolean> {
   try {
-    
     const HCAPTCHA_SECRET = process.env.HCAPTCHA_SECRET_KEY
 
     const response = await fetch('https://hcaptcha.com/siteverify', {
@@ -28,14 +25,14 @@ async function verifyCaptcha(token: string, ip: string): Promise<boolean> {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        secret: HCAPTCHA_SECRET,
+        secret: HCAPTCHA_SECRET!,
         response: token,
         remoteip: ip,
       }),
     })
 
     const data = await response.json()
-    
+
     return data.success === true
   } catch (error) {
     console.error('❌ Erro ao verificar captcha:', error)
@@ -73,9 +70,6 @@ function validateReviewData(data: any): { valid: boolean; errors: string[] } {
 }
 
 export const handler: Handler = async (event) => {
-  
-  
-
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -85,13 +79,10 @@ export const handler: Handler = async (event) => {
 
   try {
     const data: ReviewData = JSON.parse(event.body || '{}')
-    ,
-    })
 
     // Validar dados
     const validation = validateReviewData(data)
     if (!validation.valid) {
-      
       return {
         statusCode: 400,
         body: JSON.stringify({
@@ -104,12 +95,10 @@ export const handler: Handler = async (event) => {
     // Obter IP do usuário
     const ip =
       event.headers['x-forwarded-for']?.split(',')[0] || event.headers['x-real-ip'] || 'localhost'
-    
 
     // Verificar captcha
     const captchaValid = await verifyCaptcha(data.captchaToken, ip)
     if (!captchaValid) {
-      
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Captcha inválido ou expirado' }),
@@ -117,7 +106,6 @@ export const handler: Handler = async (event) => {
     }
 
     // Criar review no banco
-    
     const { data: review, error: reviewError } = await supabase
       .from('reviews')
       .insert({
@@ -135,14 +123,12 @@ export const handler: Handler = async (event) => {
       throw reviewError
     }
 
-    
-
     // Atualizar rating do profissional
-    
     const { data: allReviews } = await supabase
       .from('reviews')
       .select('rating')
       .eq('professional_id', data.professional_id)
+      .eq('status', 'approved')
 
     if (allReviews && allReviews.length > 0) {
       const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0)
@@ -156,7 +142,7 @@ export const handler: Handler = async (event) => {
         })
         .eq('id', data.professional_id)
 
-      } (${allReviews.length} reviews)`)
+      console.log(`✅ Rating atualizado: ${avgRating.toFixed(1)} (${allReviews.length} reviews)`)
     }
 
     return {
