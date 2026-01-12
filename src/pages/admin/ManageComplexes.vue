@@ -243,6 +243,10 @@
             </div>
 
             <div class="flex gap-2">
+              <Button @click="openRoomsSection(complex)" variant="outline" size="sm">
+                <Building2 class="w-4 h-4 mr-1" />
+                Salas
+              </Button>
               <Button @click="editComplex(complex)" variant="outline" size="sm">
                 <Edit class="w-4 h-4" />
               </Button>
@@ -254,16 +258,138 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal de Salas -->
+    <div
+      v-if="showRoomsSection"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      @click.self="closeRoomsSection"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        <!-- Header -->
+        <div
+          class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10"
+        >
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900">
+              Salas - {{ selectedComplexForRooms?.name }}
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">Gerencie as salas disponíveis para locação</p>
+          </div>
+          <button
+            @click="closeRoomsSection"
+            class="w-10 h-10 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center"
+          >
+            <X class="w-6 h-6 text-gray-600" />
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6">
+          <div class="mb-6 flex justify-between items-center">
+            <p class="text-gray-600">
+              {{ rooms.length }} {{ rooms.length === 1 ? 'sala cadastrada' : 'salas cadastradas' }}
+            </p>
+            <Button @click="openRoomModal()" class="bg-rose-500 hover:bg-rose-600">
+              <Plus class="w-4 h-4 mr-2" />
+              Nova Sala
+            </Button>
+          </div>
+
+          <!-- Loading -->
+          <div v-if="loadingRooms" class="text-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto"></div>
+          </div>
+
+          <!-- Empty -->
+          <div v-else-if="rooms.length === 0" class="text-center py-12 bg-gray-50 rounded-xl">
+            <Building2 class="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p class="text-gray-600 mb-4">Nenhuma sala cadastrada ainda</p>
+            <Button @click="openRoomModal()" variant="outline"> Adicionar Primeira Sala </Button>
+          </div>
+
+          <!-- List -->
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              v-for="room in rooms"
+              :key="room.id"
+              class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
+            >
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h3 class="font-bold text-lg text-gray-900">Sala {{ room.room_number }}</h3>
+                  <p v-if="room.floor" class="text-sm text-gray-600">{{ room.floor }}º andar</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-lg font-bold text-rose-600">
+                    {{ formatPrice(room.monthly_rent_cents) }}
+                  </p>
+                  <p class="text-xs text-gray-500">por mês</p>
+                </div>
+              </div>
+
+              <p v-if="room.size_sqm" class="text-sm text-gray-600 mb-2">
+                📐 {{ room.size_sqm }}m²
+              </p>
+
+              <p v-if="room.description" class="text-sm text-gray-700 mb-3 line-clamp-2">
+                {{ room.description }}
+              </p>
+
+              <div class="flex items-center gap-2 mb-3">
+                <span
+                  class="text-xs px-2 py-1 rounded-full"
+                  :class="
+                    room.is_available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  "
+                >
+                  {{ room.is_available ? 'Disponível' : 'Locada' }}
+                </span>
+              </div>
+
+              <div class="flex gap-2">
+                <Button
+                  @click="toggleRoomAvailability(room)"
+                  variant="outline"
+                  size="sm"
+                  class="flex-1"
+                >
+                  {{ room.is_available ? 'Marcar Locada' : 'Marcar Disponível' }}
+                </Button>
+                <Button @click="openRoomModal(room)" variant="outline" size="sm">
+                  <Edit class="w-4 h-4" />
+                </Button>
+                <Button @click="deleteRoom(room.id)" variant="destructive" size="sm">
+                  <Trash2 class="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Formulário -->
+    <RoomFormDialog
+      v-if="showRoomModal && selectedComplexForRooms"
+      :room="editingRoom"
+      :complex-id="selectedComplexForRooms.id"
+      :complex-name="selectedComplexForRooms.name"
+      @close="showRoomModal = false"
+      @save="saveRoom"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import RoomFormDialog from '@/components/dialog/RoomFormDialog.vue'
 import MapPicker from '@/components/maps/MapPicker.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
-import { Building2, Edit, Shield, Trash2, Upload } from 'lucide-vue-next'
+import { type AvailableRoom, type CreateRoomData } from '@/types'
+import { Building2, Edit, Plus, Shield, Trash2, Upload, X } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -318,6 +444,14 @@ const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const fileInputRef = ref<HTMLInputElement>()
 const mapKey = ref(0)
+
+// Estados para salas
+const showRoomsSection = ref(false)
+const selectedComplexForRooms = ref<{ id: string; name: string } | null>(null)
+const rooms = ref<AvailableRoom[]>([])
+const loadingRooms = ref(false)
+const showRoomModal = ref(false)
+const editingRoom = ref<AvailableRoom | null>(null)
 
 function getMapCenter() {
   if (complexLocation.value.latitude && complexLocation.value.longitude) {
@@ -581,6 +715,120 @@ function resetForm() {
   setTimeout(() => {
     mapKey.value++
   }, 50)
+}
+
+// ============================================
+// FUNÇÕES DE SALAS
+// ============================================
+
+async function loadRooms(complexId: string) {
+  loadingRooms.value = true
+  try {
+    const { data, error } = await supabase
+      .from('available_rooms')
+      .select('*')
+      .eq('complex_id', complexId)
+      .order('room_number', { ascending: true })
+
+    if (error) throw error
+    rooms.value = data || []
+  } catch (err) {
+    console.error('Erro ao carregar salas:', err)
+  } finally {
+    loadingRooms.value = false
+  }
+}
+
+function openRoomsSection(complex: Complex) {
+  selectedComplexForRooms.value = { id: complex.id, name: complex.name }
+  showRoomsSection.value = true
+  loadRooms(complex.id)
+}
+
+function closeRoomsSection() {
+  showRoomsSection.value = false
+  selectedComplexForRooms.value = null
+  rooms.value = []
+}
+
+function openRoomModal(room?: AvailableRoom) {
+  editingRoom.value = room || null
+  showRoomModal.value = true
+}
+
+async function saveRoom(data: CreateRoomData) {
+  try {
+    if (editingRoom.value) {
+      const { error } = await supabase
+        .from('available_rooms')
+        .update(data)
+        .eq('id', editingRoom.value.id)
+
+      if (error) throw error
+      message.value = 'Sala atualizada com sucesso!'
+    } else {
+      const { error } = await supabase.from('available_rooms').insert(data)
+
+      if (error) throw error
+      message.value = 'Sala criada com sucesso!'
+    }
+
+    messageType.value = 'success'
+    showRoomModal.value = false
+    editingRoom.value = null
+
+    if (selectedComplexForRooms.value) {
+      await loadRooms(selectedComplexForRooms.value.id)
+    }
+  } catch (err: any) {
+    message.value = err.message || 'Erro ao salvar sala'
+    messageType.value = 'error'
+  }
+}
+
+async function deleteRoom(roomId: string) {
+  if (!confirm('Tem certeza que deseja excluir esta sala?')) return
+
+  try {
+    const { error } = await supabase.from('available_rooms').delete().eq('id', roomId)
+
+    if (error) throw error
+
+    message.value = 'Sala excluída com sucesso!'
+    messageType.value = 'success'
+
+    if (selectedComplexForRooms.value) {
+      await loadRooms(selectedComplexForRooms.value.id)
+    }
+  } catch (err: any) {
+    message.value = err.message || 'Erro ao excluir sala'
+    messageType.value = 'error'
+  }
+}
+
+async function toggleRoomAvailability(room: AvailableRoom) {
+  try {
+    const { error } = await supabase
+      .from('available_rooms')
+      .update({ is_available: !room.is_available })
+      .eq('id', room.id)
+
+    if (error) throw error
+
+    if (selectedComplexForRooms.value) {
+      await loadRooms(selectedComplexForRooms.value.id)
+    }
+  } catch (err: any) {
+    message.value = err.message || 'Erro ao atualizar sala'
+    messageType.value = 'error'
+  }
+}
+
+function formatPrice(priceCents: number) {
+  return (priceCents / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  })
 }
 
 onMounted(() => {

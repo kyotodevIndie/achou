@@ -16,6 +16,14 @@ const router = createRouter({
       component: () => import('@/pages/Search.vue'),
     },
     {
+      path: '/salas-disponiveis',
+      name: 'AvailableRooms',
+      component: () => import('@/pages/AvailableRooms.vue'),
+      meta: {
+        title: 'Salas Disponíveis - ACHOU',
+      },
+    },
+    {
       path: '/profissional/:id',
       name: 'ProfessionalProfile',
       component: () => import('@/pages/Profile.vue'),

@@ -20,6 +20,12 @@
             >
               Buscar
             </router-link>
+            <router-link
+              to="/salas-disponiveis"
+              class="text-gray-600 hover:text-rose-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Salas Disponíveis
+            </router-link>
           </nav>
         </div>
 
@@ -78,6 +84,13 @@
             class="text-gray-600 hover:text-rose-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
           >
             Buscar
+          </router-link>
+          <router-link
+            to="/salas-disponiveis"
+            @click="toggleMobileMenu"
+            class="text-gray-600 hover:text-rose-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Salas Disponíveis
           </router-link>
 
           <div class="border-t border-gray-200 pt-3 mt-3">

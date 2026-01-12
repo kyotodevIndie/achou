@@ -1,4 +1,46 @@
-// src/types/index.ts - Interfaces completas
+export interface AvailableRoom {
+  id: string
+  complex_id: string
+  complex_name: string
+  room_number: string
+  floor?: string
+  size_sqm?: number
+  monthly_rent_cents: number
+  description?: string
+  amenities?: string[]
+  is_available: boolean
+  photo_url?: string
+  contact_phone?: string
+  contact_email?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateRoomData {
+  complex_id: string
+  complex_name: string
+  room_number: string
+  floor?: string
+  size_sqm?: number
+  monthly_rent_cents: number
+  description?: string
+  amenities?: string[]
+  photo_url?: string
+  contact_phone?: string
+  contact_email?: string
+}
+
+export const ROOM_AMENITIES = [
+  { value: 'ar-condicionado', label: 'Ar Condicionado', icon: '❄️' },
+  { value: 'wifi', label: 'Wi-Fi', icon: '📶' },
+  { value: 'banheiro-privativo', label: 'Banheiro Privativo', icon: '🚻' },
+  { value: 'estacionamento', label: 'Estacionamento', icon: '🅿️' },
+  { value: 'recepcao', label: 'Recepção', icon: '🏢' },
+  { value: 'seguranca-24h', label: 'Segurança 24h', icon: '🔒' },
+  { value: 'elevador', label: 'Elevador', icon: '🛗' },
+  { value: 'copa', label: 'Copa', icon: '☕' },
+  { value: 'mobiliado', label: 'Mobiliado', icon: '🪑' },
+] as const
 export interface ProfessionalPhoto {
   id: string
   photo_url: string
